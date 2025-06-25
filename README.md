@@ -109,8 +109,30 @@ python src/app.py
 # Build the Docker image
 docker build -t image-intensity-service .
 
+# Check image size
+docker images image-intensity-service
+
 # Run the container
 docker run -p 5000:5000 image-intensity-service
+
+# Run in background with name
+docker run -d --name intensity-service -p 5000:5000 image-intensity-service
+```
+
+### Docker Cleanup
+
+```bash
+# Stop and remove container
+docker stop image-intensity-service
+docker rm image-intensity-service
+
+# Remove the image
+docker rmi image-intensity-service
+
+# Complete cleanup (remove all related containers and image)
+docker stop $(docker ps -q --filter ancestor=image-intensity-service) 2>/dev/null || true
+docker rm $(docker ps -aq --filter ancestor=image-intensity-service) 2>/dev/null || true
+docker rmi image-intensity-service
 ```
 
 ### Running Tests
