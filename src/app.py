@@ -6,8 +6,6 @@ import os
 
 app = Flask(__name__)
 
-# Configuration
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 def calculate_average_intensity(image_data):
     """
@@ -101,13 +99,6 @@ def get_image_intensity():
         return jsonify({
             "error": f"Internal server error: {str(e)}"
         }), 500
-
-@app.errorhandler(413)
-def too_large(e):
-    """Handle file too large error"""
-    return jsonify({
-        "error": "File too large. Maximum size allowed is 16MB"
-    }), 413
 
 @app.errorhandler(404)
 def not_found(e):

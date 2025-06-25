@@ -58,7 +58,6 @@ Body: image file (PNG format)
   - Return floating-point result (0.0 - 255.0)
 - **Input Validation**:
   - File format verification (PNG only)
-  - File size limits
   - Empty file detection
 - **Error Handling**: Comprehensive validation with appropriate HTTP status codes
 
@@ -71,10 +70,10 @@ Body: image file (PNG format)
 ## Implementation Status
 
 - [x] Initial design and architecture
-- [x] Flask application implementation
 - [x] Requirements specification (requirements.txt, requirements-dev.txt)
-- [x] Dockerfile creation
+- [x] Flask application implementation
 - [x] API testing (test_api.py)
+- [x] Dockerfile creation
 - [x] Documentation completion
 - [x] Git configuration (.gitignore)
 
@@ -98,7 +97,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Run the application
 python src/app.py
@@ -124,7 +123,7 @@ pip install -r requirements-dev.txt
 pytest tests/test_api.py -v
 
 # Run tests with coverage
-pytest tests/test_api.py --cov=src.app
+PYTHONPATH=src pytest tests/test_api.py --cov=app --cov-report=html
 
 # Run specific test
 pytest tests/test_api.py::test_intensity_calculation -v
@@ -135,7 +134,7 @@ pytest tests/test_api.py::test_intensity_calculation -v
 #### Using curl
 ```bash
 # Upload PNG image
-curl -X POST -F "image=@sample.png" http://localhost:5000/intensity
+curl -X POST -F "image=@images/test_image.png" http://localhost:5000/intensity
 ```
 
 #### Using Python requests
@@ -203,6 +202,7 @@ image-intensity-service/
 
 ## Future Enhancements
 
+- Image file size limit
 - Support for additional image formats (JPEG, GIF)
 - Batch processing capabilities
 - Image metadata extraction
@@ -210,6 +210,3 @@ image-intensity-service/
 - Authentication and rate limiting
 - Monitoring and logging integration
 
----
-
-*Project completed with Flask API service and Docker containerization for PNG image intensity calculation.*
