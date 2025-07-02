@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Intensity Calculator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+        }
+        .card {
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .spinner-border {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2 class="text-center mb-4">Image Intensity Calculator</h2>
+            <form id="upload-form">
+                <div class="custom-file mb-3">
+                    <input type="file" class="custom-file-input" id="image-input" name="image" accept="image/png">
+                    <label class="custom-file-label" for="image-input">Choose file...</label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Upload and Calculate</button>
+            </form>
+            <div class="spinner-border text-primary mt-4" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <div id="result" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('image-input');
+            const file = fileInput.files[0];
+            const resultDiv = document.getElementById('result');
+            const spinner = document.querySelector('.spinner-border');
+
+            if (!file) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Please select a file.</div>`;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            spinner.style.display = 'block';
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/intensity', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5>Results:</h5>
+                            <p><strong>Filename:</strong> ${data.filename}</p>
+                            <p><strong>Average Intensity:</strong> ${data.average_intensity}</p>
+                            <p><strong>Image Size:</strong> ${data.image_size[0]} x ${data.image_size[1]}</p>
+                            <p><strong>Pixel Count:</strong> ${data.pixel_count}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+
+        document.querySelector('.custom-file-input').addEventListener('change',function(e){
+          var fileName = document.getElementById("image-input").files[0].name;
+          var nextSibling = e.target.nextElementSibling
+          nextSibling.innerText = fileName
+        })
+    </script>
+</body>
+</html>

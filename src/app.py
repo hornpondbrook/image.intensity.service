@@ -1,10 +1,16 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from PIL import Image
 import numpy as np
 import io
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates')
+
+
+@app.route('/')
+def index():
+    """Serve the index.html page"""
+    return render_template('index.html')
 
 
 def calculate_average_intensity(image_data):
