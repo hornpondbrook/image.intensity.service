@@ -1,257 +1,185 @@
 # Image Intensity Service
 
-A RESTful API service and web interface built with Python and Flask that calculates the average intensity of PNG images.
+## 1. Overview
 
-## Overview
+This project is a Python-based web service built with Flask that calculates the average grayscale intensity of a PNG image. It provides both an interactive web interface for manual uploads and a RESTful API for programmatic use.
 
-This service provides two ways to calculate image intensity:
-1.  A **web interface** to upload an image and see the result.
-2.  A **RESTful API** that accepts PNG image uploads and returns the calculated average intensity value.
+The intensity is computed by converting the image to grayscale and calculating the mean pixel value, resulting in a value between 0 (black) and 255 (white).
 
-The intensity is computed by converting the image to grayscale and calculating the mean pixel value (range: 0-255).
+## 2. Features
 
-## Web Interface
+-   **Interactive Web Interface**: A simple, clean UI for uploading images directly from the browser.
+-   **RESTful API**: A straightforward API for integrating the service into other applications.
+-   **Client-Side Image Preview**: See a thumbnail of your selected image before you upload it.
+-   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
+-   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
-The service includes a simple web page that allows users to upload a PNG image directly from their browser.
+## 3. Getting Started
 
-- **URL**: `/`
-- **Functionality**:
-    - Choose a PNG file from your local machine.
-    - **See a preview of the selected image before uploading.**
-    - Upload the file to the server.
-    - View the calculated average intensity and other image metadata.
-
-## Architecture & Design
-
-### Core Components
-
-1.  **Flask Web Application** (`app.py`)
-    - Serves the web interface (`index.html`).
-    - Provides RESTful API endpoints.
-    - Handles image processing and validation.
-    - Manages error handling and responses.
-
-2.  **Docker Container** (`Dockerfile`)
-    - Containerized deployment for both the web UI and API.
-    - Production-ready configuration.
-    - Optimized image size.
-
-### API Design
-
-#### Endpoints
-
-- `GET /` - Serves the web interface.
-- `POST /intensity` - Calculates image intensity via API.
-
-#### Request Format (`/intensity`)
-```
-POST /intensity
-Content-Type: multipart/form-data
-Body: image file (PNG format)
-```
-
-#### Response Format (`/intensity`)
-```json
-{
-  "average_intensity": 127.5,
-  "filename": "example.png",
-  "image_size": [800, 600]
-}
-```
-
-#### Error Responses
-```json
-{
-  "error": "Error message description"
-}
-```
-
-### Technical Specifications
-
-- **Image Processing**: PIL/Pillow library for robust PNG handling.
-- **Intensity Calculation**:
-  - Convert image to grayscale (L mode).
-  - Calculate mean pixel value using NumPy.
-  - Return floating-point result (0.0 - 255.0).
-- **Input Validation**:
-  - File format verification (PNG only).
-  - Empty file detection.
-- **Error Handling**: Comprehensive validation with appropriate HTTP status codes.
-
-### Dependencies
-
-- **Flask**: Web framework for API endpoints and serving the UI.
-- **Pillow (PIL)**: Image processing and manipulation.
-- **NumPy**: Numerical calculations for intensity computation.
-
-## Implementation Status
-
-- [x] Initial design and architecture
-- [x] Requirements specification (requirements.txt, requirements-dev.txt)
-- [x] Flask application implementation
-- [x] API testing (test_api.py)
-- [x] Dockerfile creation
-- [x] **Web interface for image upload**
-- [x] **Client-side image preview**
-- [x] Documentation completion
-- [x] Git configuration (.gitignore)
-
-## Getting Started
+This section will guide you through running the service.
 
 ### Prerequisites
 
-- Python 3.8+
-- Virtual environment (recommended)
-- Docker (for containerized deployment)
+-   Docker
+-   Python 3.8+ and `pip` (for local development)
 
-### Local Development
+### Running with Docker (Recommended)
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd image-intensity-service
+Using Docker is the simplest way to get the service running.
 
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+1.  **Build the image:**
+    ```bash
+    docker build -t image-intensity-service .
+    ```
 
-# Install dependencies
-pip install -r requirements-dev.txt
+2.  **Run the container:**
+    ```bash
+    docker run -p 5000:5000 image-intensity-service
+    ```
 
-# Run the application in development mode
-FLASK_ENV=development python src/app.py
-```
-The web interface will be available at `http://localhost:5000`.
+The service will be available at `http://localhost:5000`.
 
-### Docker Deployment
+### Running Locally for Development
 
-```bash
-# Build the Docker image
-docker build -t image-intensity-service .
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd image-intensity-service
+    ```
 
-# Check image size
-docker images image-intensity-service
+2.  **Set up a virtual environment:**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
 
-# Run the container
-docker run -p 5000:5000 image-intensity-service
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
 
-# Run in background with name
-docker run -d --name intensity-service -p 5000:5000 image-intensity-service
-```
+4.  **Run the application:**
+    ```bash
+    FLASK_ENV=development python src/app.py
+    ```
 
-### Docker Cleanup
+The service will be available at `http://localhost:5000`.
 
-```bash
-# Stop and remove container
-docker stop image-intensity-service
-docker rm image-intensity-service
+## 4. Usage
 
-# Remove the image
-docker rmi image-intensity-service
+Once the service is running, you can interact with it in two ways:
 
-# Complete cleanup (remove all related containers and image)
-docker stop $(docker ps -q --filter ancestor=image-intensity-service) 2>/dev/null || true
-docker rm $(docker ps -aq --filter ancestor=image-intensity-service) 2>/dev/null || true
-docker rmi image-intensity-service
-```
+### Web Interface
 
-### Running Tests
+Navigate to `http://localhost:5000` in your web browser. The interface allows you to:
+-   Choose a PNG file from your local machine.
+-   See a preview of the selected image.
+-   Upload the image and view the calculated intensity results.
 
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
+### API Endpoints
 
-# Run all tests
-pytest tests/test_api.py -v
+#### `GET /`
 
-# Run tests with coverage
-PYTHONPATH=src pytest tests/test_api.py --cov=app --cov-report=html
+-   **Description**: Serves the main web interface.
+-   **Response**: `text/html`
 
-# Run specific test
-pytest tests/test_api.py::test_intensity_calculation -v
-```
+#### `POST /intensity`
+
+-   **Description**: Calculates the average intensity of an uploaded PNG image.
+-   **Request `Content-Type`**: `multipart/form-data`
+-   **Request Body**: Must contain a file field named `image`.
+
+-   **Success Response (`200 OK`)**:
+    ```json
+    {
+      "average_intensity": 127.45,
+      "filename": "sample.png",
+      "image_size": [800, 600],
+      "original_mode": "RGB",
+      "pixel_count": 480000
+    }
+    ```
+
+-   **Error Response (`400 Bad Request`)**:
+    ```json
+    {
+      "error": "Image must be in PNG format. Received: JPEG"
+    }
+    ```
 
 ### API Usage Examples
 
-#### Using curl
+#### cURL
+
 ```bash
-# Upload PNG image
-curl -X POST -F "image=@images/test_image.png" http://localhost:5000/intensity
+curl -X POST -F "image=@/path/to/your/image.png" http://localhost:5000/intensity
 ```
 
-#### Using Python requests
+#### Python (`requests`)
+
 ```python
 import requests
 
-# Upload image
-with open('sample.png', 'rb') as f:
-    files = {'image': f}
+file_path = 'path/to/your/image.png'
+
+with open(file_path, 'rb') as f:
+    files = {'image': (file_path, f, 'image/png')}
     response = requests.post('http://localhost:5000/intensity', files=files)
-    print(response.json())
+
+print(response.json())
 ```
 
-#### Example Response
-```json
-{
-  "average_intensity": 127.45,
-  "filename": "sample.png",
-  "image_size": [800, 600],
-  "original_mode": "RGB",
-  "pixel_count": 480000
-}
-```
+## 5. Development
 
-## Development Notes
+This section contains information for developers contributing to the project.
 
-### Image Intensity Calculation Method
-
-The average intensity is calculated using the following approach:
-
-1. **Format Validation**: Verify the uploaded file is in PNG format
-2. **Grayscale Conversion**: Convert the image to grayscale (L mode) if not already
-3. **Numerical Processing**: Convert image data to NumPy array
-4. **Average Calculation**: Compute the mean of all pixel values
-5. **Result**: Return floating-point intensity value (0.0 = black, 255.0 = white)
-
-### Error Handling Strategy
-
-- **400 Bad Request**: Invalid input (wrong format, empty file, missing parameters)
-- **500 Internal Server Error**: Processing errors or server issues
-- **200 OK**: Successful processing with intensity result
-
-### Security Considerations
-
-- Input validation for file types
-- File size limitations
-- Memory management for large images
-- No persistent file storage (processed in memory)
-
-## Project Structure
+### Project Structure
 
 ```
 image-intensity-service/
 ├── src/
-│   └── app.py            # Flask application with API endpoints
+│   └── app.py            # Flask application, endpoints, and core logic
 ├── templates/
-│   └── index.html        # Web interface for image upload
+│   └── index.html        # Web interface HTML
 ├── tests/
-│   └── test_api.py       # API tests and unit tests
+│   └── test_api.py       # Pytest tests for the API
 ├── requirements.txt      # Production dependencies
 ├── requirements-dev.txt  # Development and testing dependencies
-├── Dockerfile           # Container configuration
-├── .dockerignore        # Docker build exclusions
-├── .gitignore          # Git ignore patterns
-└── README.md           # Project documentation
+├── Dockerfile            # Container configuration
+└── README.md             # This file
 ```
 
-## Future Enhancements
+### Running Tests
 
-- Image file size limit
-- Support for additional image formats (JPEG, GIF)
-- Batch processing capabilities
-- Image metadata extraction
-- Advanced intensity metrics (histogram analysis)
-- Authentication and rate limiting
-- Monitoring and logging integration
-- Asynchronous task processing with Celery/Redis
+Ensure you have installed the development dependencies (`requirements-dev.txt`).
 
+```bash
+# Run all tests with verbose output
+pytest -v
+
+# Run tests with code coverage report
+pytest --cov=src --cov-report=html
+```
+
+### Logging
+
+The application uses structured JSON logging, which is ideal for production environments.
+- **Format**: JSON lines sent to standard output.
+- **Details**: Each log entry includes a timestamp, level, message, and request context (method, path, IP, duration).
+- **Example Log Entry**:
+  ```json
+  {"timestamp": "2023-10-27T10:30:00,123", "level": "INFO", "message": "Request completed", "name": "src.app", "extra_info": {"method": "POST", "path": "/intensity", "status_code": 200, "duration_ms": 54.21, "response_mimetype": "application/json"}}
+  ```
+
+### Core Logic Notes
+
+-   **Intensity Calculation**: The core logic resides in the `calculate_average_intensity` function. It first validates that the image is a PNG, converts it to grayscale (`L` mode), transforms it into a NumPy array, and computes the mean.
+-   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes (e.g., `400` for client errors, `500` for server errors).
+
+## 6. Future Enhancements
+
+-   Add an explicit limit for image file size.
+-   Support for additional image formats (e.g., JPEG).
+-   Implement asynchronous processing for large images using a task queue like Celery.
+-   Add authentication and rate limiting to the API.
+-   Expand test suite to cover more edge cases and the web UI.
