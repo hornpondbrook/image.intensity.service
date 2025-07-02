@@ -21,6 +21,16 @@
         .spinner-border {
             display: none;
         }
+        #preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -32,7 +42,8 @@
                     <input type="file" class="custom-file-input" id="image-input" name="image" accept="image/png">
                     <label class="custom-file-label" for="image-input">Choose file...</label>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Upload and Calculate</button>
+                <div id="preview-container"></div>
+                <button type="submit" class="btn btn-primary btn-block mt-3">Upload and Calculate</button>
             </form>
             <div class="spinner-border text-primary mt-4" role="status">
                 <span class="sr-only">Loading...</span>
@@ -42,13 +53,36 @@
     </div>
 
     <script>
-        document.getElementById('upload-form').addEventListener('submit', async function(e) {
+        const imageInput = document.getElementById('image-input');
+        const previewContainer = document.getElementById('preview-container');
+        const resultDiv = document.getElementById('result');
+        const spinner = document.querySelector('.spinner-border');
+        const uploadForm = document.getElementById('upload-form');
+        const customFileLabel = document.querySelector('.custom-file-label');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Update the label
+                customFileLabel.innerText = file.name;
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewContainer.innerHTML = `<img src="${event.target.result}" id="preview-image" alt="Image Preview">`;
+                }
+                reader.readAsDataURL(file);
+                resultDiv.innerHTML = ''; // Clear previous results
+            } else {
+                customFileLabel.innerText = 'Choose file...';
+                previewContainer.innerHTML = '';
+            }
+        });
+
+        uploadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const fileInput = document.getElementById('image-input');
-            const file = fileInput.files[0];
-            const resultDiv = document.getElementById('result');
-            const spinner = document.querySelector('.spinner-border');
+            const file = imageInput.files[0];
 
             if (!file) {
                 resultDiv.innerHTML = `<div class="alert alert-danger">Please select a file.</div>`;
@@ -88,12 +122,6 @@
                 spinner.style.display = 'none';
             }
         });
-
-        document.querySelector('.custom-file-input').addEventListener('change',function(e){
-          var fileName = document.getElementById("image-input").files[0].name;
-          var nextSibling = e.target.nextElementSibling
-          nextSibling.innerText = fileName
-        })
     </script>
 </body>
 </html>
