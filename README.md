@@ -11,6 +11,7 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **Interactive Web Interface**: A simple, clean UI for uploading images directly from the browser.
 -   **RESTful API**: A straightforward API for integrating the service into other applications.
 -   **Client-Side Image Preview**: See a thumbnail of your selected image before you upload it.
+-   **File Size Limit**: Protects the server by rejecting files larger than 5 MB.
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
@@ -100,12 +101,9 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
     }
     ```
 
--   **Error Response (`400 Bad Request`)**:
-    ```json
-    {
-      "error": "Image must be in PNG format. Received: JPEG"
-    }
-    ```
+-   **Error Responses**:
+    -   `400 Bad Request`: For invalid input, such as wrong file format.
+    -   `413 Payload Too Large`: If the uploaded file exceeds the 5 MB size limit.
 
 ### API Usage Examples
 
@@ -174,11 +172,11 @@ The application uses structured JSON logging, which is ideal for production envi
 ### Core Logic Notes
 
 -   **Intensity Calculation**: The core logic resides in the `calculate_average_intensity` function. It first validates that the image is a PNG, converts it to grayscale (`L` mode), transforms it into a NumPy array, and computes the mean.
--   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes (e.g., `400` for client errors, `500` for server errors).
+-   **Input Validation**: The service validates that the file is a PNG and is not empty. It also enforces a **5 MB file size limit** via the `MAX_CONTENT_LENGTH` setting.
+-   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes (e.g., `400` for client errors, `413` for oversized files, `500` for server errors).
 
 ## 6. Future Enhancements
 
--   Add an explicit limit for image file size.
 -   Support for additional image formats (e.g., JPEG).
 -   Implement asynchronous processing for large images using a task queue like Celery.
 -   Add authentication and rate limiting to the API.
