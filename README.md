@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This project is a Python-based web service built with Flask that calculates the average grayscale intensity of a PNG image. It provides both an interactive web interface for manual uploads and a RESTful API for programmatic use.
+This project is a Python-based web service built with Flask that calculates the average grayscale intensity of a PNG or JPEG image. It provides both an interactive web interface for manual uploads and a RESTful API for programmatic use.
 
 The intensity is computed by converting the image to grayscale and calculating the mean pixel value, resulting in a value between 0 (black) and 255 (white).
 
@@ -10,6 +10,7 @@ The intensity is computed by converting the image to grayscale and calculating t
 
 -   **Interactive Web Interface**: A simple, clean UI for uploading images directly from the browser.
 -   **RESTful API**: A straightforward API for integrating the service into other applications.
+-   **Multi-Format Support**: Calculates intensity for both PNG and JPEG images.
 -   **Client-Side Image Preview**: See a thumbnail of your selected image before you upload it.
 -   **File Size Limit**: Protects the server by rejecting files larger than 5 MB.
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
@@ -86,7 +87,7 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
 
 #### `POST /intensity`
 
--   **Description**: Calculates the average intensity of an uploaded PNG image.
+-   **Description**: Calculates the average intensity of an uploaded PNG or JPEG image.
 -   **Request `Content-Type`**: `multipart/form-data`
 -   **Request Body**: Must contain a file field named `image`.
 
@@ -102,7 +103,7 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
     ```
 
 -   **Error Responses**:
-    -   `400 Bad Request`: For invalid input, such as wrong file format.
+    -   `400 Bad Request`: For invalid input, such as wrong file format (e.g., GIF, TIFF).
     -   `413 Payload Too Large`: If the uploaded file exceeds the 5 MB size limit.
 
 ### API Usage Examples
@@ -110,7 +111,11 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
 #### cURL
 
 ```bash
+# Example with a PNG file
 curl -X POST -F "image=@/path/to/your/image.png" http://localhost:5000/intensity
+
+# Example with a JPEG file
+curl -X POST -F "image=@/path/to/your/image.jpg" http://localhost:5000/intensity
 ```
 
 #### Python (`requests`)
@@ -118,12 +123,18 @@ curl -X POST -F "image=@/path/to/your/image.png" http://localhost:5000/intensity
 ```python
 import requests
 
+# Example with a PNG file
 file_path = 'path/to/your/image.png'
-
 with open(file_path, 'rb') as f:
     files = {'image': (file_path, f, 'image/png')}
     response = requests.post('http://localhost:5000/intensity', files=files)
+print(response.json())
 
+# Example with a JPEG file
+file_path = 'path/to/your/image.jpg'
+with open(file_path, 'rb') as f:
+    files = {'image': (file_path, f, 'image/jpeg')}
+    response = requests.post('http://localhost:5000/intensity', files=files)
 print(response.json())
 ```
 
@@ -171,13 +182,12 @@ The application uses structured JSON logging, which is ideal for production envi
 
 ### Core Logic Notes
 
--   **Intensity Calculation**: The core logic resides in the `calculate_average_intensity` function. It first validates that the image is a PNG, converts it to grayscale (`L` mode), transforms it into a NumPy array, and computes the mean.
--   **Input Validation**: The service validates that the file is a PNG and is not empty. It also enforces a **5 MB file size limit** via the `MAX_CONTENT_LENGTH` setting.
+-   **Intensity Calculation**: The core logic resides in the `calculate_average_intensity` function. It first validates that the image is a PNG or JPEG, converts it to grayscale (`L` mode), transforms it into a NumPy array, and computes the mean.
+-   **Input Validation**: The service validates that the file is a PNG or JPEG and is not empty. It also enforces a **5 MB file size limit** via the `MAX_CONTENT_LENGTH` setting.
 -   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes (e.g., `400` for client errors, `413` for oversized files, `500` for server errors).
 
 ## 6. Future Enhancements
 
--   Support for additional image formats (e.g., JPEG).
 -   Implement asynchronous processing for large images using a task queue like Celery.
 -   Add authentication and rate limiting to the API.
 -   Expand test suite to cover more edge cases and the web UI.

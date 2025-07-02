@@ -92,7 +92,7 @@ def register_routes_and_handlers(app):
 
     @app.route('/intensity', methods=['POST'])
     def get_image_intensity():
-        """API endpoint to calculate average intensity of a PNG image."""
+        """API endpoint to calculate average intensity of a PNG or JPEG image."""
         try:
             if 'image' not in request.files:
                 app.logger.warning("Validation failed: No image file provided.")
@@ -138,8 +138,8 @@ def register_routes_and_handlers(app):
         """Calculate the average intensity of an image."""
         try:
             image = Image.open(io.BytesIO(image_data))
-            if image.format != 'PNG':
-                raise ValueError(f"Image must be in PNG format. Received: {image.format}")
+            if image.format not in ['PNG', 'JPEG']:
+                raise ValueError(f"Image must be in PNG or JPEG format. Received: {image.format}")
             
             width, height = image.size
             

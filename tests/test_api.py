@@ -35,6 +35,17 @@ def create_test_png(width=100, height=100, intensity=128):
     
     return img_buffer
 
+def create_test_jpeg(width=100, height=100, intensity=128):
+    """Create a test JPEG image with specified intensity."""
+    img_array = np.full((height, width), intensity, dtype=np.uint8)
+    img = Image.fromarray(img_array, mode='L')
+    
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format='JPEG')
+    img_buffer.seek(0)
+    
+    return img_buffer
+
 def test_intensity_calculation(app):
     """Test the intensity calculation function directly."""
     # The function is now defined inside create_app, so we can't import it directly.
@@ -42,8 +53,8 @@ def test_intensity_calculation(app):
     # For now, we'll rely on the endpoint tests.
     pass
 
-def test_intensity_endpoint_success(client):
-    """Test successful image upload and intensity calculation."""
+def test_intensity_endpoint_success_png(client):
+    """Test successful PNG image upload and intensity calculation."""
     img_buffer = create_test_png(100, 100, 150)
     
     response = client.post('/intensity', data={'image': (img_buffer, 'test.png')})
@@ -52,6 +63,18 @@ def test_intensity_endpoint_success(client):
     data = response.get_json()
     assert 'average_intensity' in data
     assert data['average_intensity'] == 150.0
+
+def test_intensity_endpoint_success_jpeg(client):
+    """Test successful JPEG image upload and intensity calculation."""
+    img_buffer = create_test_jpeg(100, 100, 180)
+    
+    response = client.post('/intensity', data={'image': (img_buffer, 'test.jpg')})
+    
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'average_intensity' in data
+    # JPEG compression can cause slight variations in intensity
+    assert abs(data['average_intensity'] - 180.0) < 2.0
 
 def test_intensity_endpoint_no_file(client):
     """Test endpoint with no file uploaded."""
@@ -65,10 +88,10 @@ def test_intensity_endpoint_empty_file(client):
     assert response.status_code == 400
     assert 'error' in response.get_json()
 
-def test_intensity_endpoint_non_png(client):
-    """Test endpoint with non-PNG file."""
-    fake_jpeg = io.BytesIO(b'\xFF\xD8\xFF\xE0\x00\x10JFIF')
-    response = client.post('/intensity', data={'image': (fake_jpeg, 'test.jpg')})
+def test_intensity_endpoint_unsupported_format(client):
+    """Test endpoint with an unsupported image format (GIF)."""
+    fake_gif = io.BytesIO(b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+    response = client.post('/intensity', data={'image': (fake_gif, 'test.gif')})
     assert response.status_code == 400
     assert 'error' in response.get_json()
 
