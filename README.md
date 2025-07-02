@@ -17,6 +17,7 @@ The service includes a simple web page that allows users to upload a PNG image d
 - **URL**: `/`
 - **Functionality**:
     - Choose a PNG file from your local machine.
+    - **See a preview of the selected image before uploading.**
     - Upload the file to the server.
     - View the calculated average intensity and other image metadata.
 
@@ -91,6 +92,7 @@ Body: image file (PNG format)
 - [x] API testing (test_api.py)
 - [x] Dockerfile creation
 - [x] **Web interface for image upload**
+- [x] **Client-side image preview**
 - [x] Documentation completion
 - [x] Git configuration (.gitignore)
 
@@ -251,6 +253,5 @@ image-intensity-service/
 - Advanced intensity metrics (histogram analysis)
 - Authentication and rate limiting
 - Monitoring and logging integration
-- Client-side image preview
 - Asynchronous task processing with Celery/Redis
 
