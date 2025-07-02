@@ -1,39 +1,55 @@
 # Image Intensity Service
 
-A RESTful API service built with Python Flask that calculates the average intensity of PNG images.
+A RESTful API service and web interface built with Python and Flask that calculates the average intensity of PNG images.
 
 ## Overview
 
-This service provides a simple HTTP API that accepts PNG image uploads and returns the calculated average intensity value. The intensity is computed by converting the image to grayscale and calculating the mean pixel value (range: 0-255).
+This service provides two ways to calculate image intensity:
+1.  A **web interface** to upload an image and see the result.
+2.  A **RESTful API** that accepts PNG image uploads and returns the calculated average intensity value.
+
+The intensity is computed by converting the image to grayscale and calculating the mean pixel value (range: 0-255).
+
+## Web Interface
+
+The service includes a simple web page that allows users to upload a PNG image directly from their browser.
+
+- **URL**: `/`
+- **Functionality**:
+    - Choose a PNG file from your local machine.
+    - Upload the file to the server.
+    - View the calculated average intensity and other image metadata.
 
 ## Architecture & Design
 
 ### Core Components
 
-1. **Flask Web Application** (`app.py`)
-   - RESTful API endpoints
-   - Image processing and validation
-   - Error handling and responses
+1.  **Flask Web Application** (`app.py`)
+    - Serves the web interface (`index.html`).
+    - Provides RESTful API endpoints.
+    - Handles image processing and validation.
+    - Manages error handling and responses.
 
-2. **Docker Container** (`Dockerfile`)
-   - Containerized deployment
-   - Production-ready configuration
-   - Optimized image size
+2.  **Docker Container** (`Dockerfile`)
+    - Containerized deployment for both the web UI and API.
+    - Production-ready configuration.
+    - Optimized image size.
 
 ### API Design
 
 #### Endpoints
 
-- `POST /intensity` - Calculate image intensity
+- `GET /` - Serves the web interface.
+- `POST /intensity` - Calculates image intensity via API.
 
-#### Request Format
+#### Request Format (`/intensity`)
 ```
 POST /intensity
 Content-Type: multipart/form-data
 Body: image file (PNG format)
 ```
 
-#### Response Format
+#### Response Format (`/intensity`)
 ```json
 {
   "average_intensity": 127.5,
@@ -51,21 +67,21 @@ Body: image file (PNG format)
 
 ### Technical Specifications
 
-- **Image Processing**: PIL/Pillow library for robust PNG handling
-- **Intensity Calculation**: 
-  - Convert image to grayscale (L mode)
-  - Calculate mean pixel value using NumPy
-  - Return floating-point result (0.0 - 255.0)
+- **Image Processing**: PIL/Pillow library for robust PNG handling.
+- **Intensity Calculation**:
+  - Convert image to grayscale (L mode).
+  - Calculate mean pixel value using NumPy.
+  - Return floating-point result (0.0 - 255.0).
 - **Input Validation**:
-  - File format verification (PNG only)
-  - Empty file detection
-- **Error Handling**: Comprehensive validation with appropriate HTTP status codes
+  - File format verification (PNG only).
+  - Empty file detection.
+- **Error Handling**: Comprehensive validation with appropriate HTTP status codes.
 
 ### Dependencies
 
-- **Flask**: Web framework for API endpoints
-- **Pillow (PIL)**: Image processing and manipulation
-- **NumPy**: Numerical calculations for intensity computation
+- **Flask**: Web framework for API endpoints and serving the UI.
+- **Pillow (PIL)**: Image processing and manipulation.
+- **NumPy**: Numerical calculations for intensity computation.
 
 ## Implementation Status
 
@@ -74,6 +90,7 @@ Body: image file (PNG format)
 - [x] Flask application implementation
 - [x] API testing (test_api.py)
 - [x] Dockerfile creation
+- [x] **Web interface for image upload**
 - [x] Documentation completion
 - [x] Git configuration (.gitignore)
 
@@ -99,9 +116,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements-dev.txt
 
-# Run the application
-python src/app.py
+# Run the application in development mode
+FLASK_ENV=development python src/app.py
 ```
+The web interface will be available at `http://localhost:5000`.
 
 ### Docker Deployment
 
@@ -212,6 +230,8 @@ The average intensity is calculated using the following approach:
 image-intensity-service/
 ├── src/
 │   └── app.py            # Flask application with API endpoints
+├── templates/
+│   └── index.html        # Web interface for image upload
 ├── tests/
 │   └── test_api.py       # API tests and unit tests
 ├── requirements.txt      # Production dependencies
@@ -231,4 +251,6 @@ image-intensity-service/
 - Advanced intensity metrics (histogram analysis)
 - Authentication and rate limiting
 - Monitoring and logging integration
+- Client-side image preview
+- Asynchronous task processing with Celery/Redis
 
