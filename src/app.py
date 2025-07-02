@@ -40,7 +40,7 @@ def setup_logging(app):
 
 def create_app():
     """Create and configure the Flask application."""
-    app = Flask(__name__, template_folder='../templates')
+    app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
 
     # --- Configuration ---
     # Load configuration from environment variable (e.g., 'development', 'production')

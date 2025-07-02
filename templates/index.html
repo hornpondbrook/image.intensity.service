@@ -3,125 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Intensity Calculator</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 600px;
-            margin-top: 50px;
-        }
-        .card {
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .spinner-border {
-            display: none;
-        }
-        #preview-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #preview-image {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-    </style>
+    <title>Image Intensity Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <h2 class="text-center mb-4">Image Intensity Calculator</h2>
-            <form id="upload-form">
-                <div class="custom-file mb-3">
-                    <input type="file" class="custom-file-input" id="image-input" name="image" accept="image/png">
-                    <label class="custom-file-label" for="image-input">Choose file...</label>
-                </div>
-                <div id="preview-container"></div>
-                <button type="submit" class="btn btn-primary btn-block mt-3">Upload and Calculate</button>
-            </form>
-            <div class="spinner-border text-primary mt-4" role="status">
-                <span class="sr-only">Loading...</span>
+        <div class="card shadow-lg border-0">
+            <div class="card-body">
+                <h1 class="card-title text-center mb-4">Image Intensity Analyzer</h1>
+                <p class="card-text text-center text-muted mb-4">
+                    Upload a PNG or JPEG image to calculate its average grayscale intensity.
+                </p>
+                <form id="upload-form" novalidate>
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-7">
+                            <input type="file" class="form-control" id="image-input" name="image" accept="image/png,image/jpeg" required placeholder="Choose image file">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 btn-match-input" id="analyze-button">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                                Analyze
+                        </button>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-secondary btn-lg w-100 btn-match-input" id="clear-button">Clear</button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5 class="text-center">Image Preview</h5>
+                            <div id="preview-container" class="border p-2 rounded text-center" style="min-height: 200px;"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-center">Analysis Result</h5>
+                            <div id="result" class="border p-2 rounded" style="min-height: 200px;"></div>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div id="result" class="mt-4"></div>
         </div>
     </div>
 
-    <script>
-        const imageInput = document.getElementById('image-input');
-        const previewContainer = document.getElementById('preview-container');
-        const resultDiv = document.getElementById('result');
-        const spinner = document.querySelector('.spinner-border');
-        const uploadForm = document.getElementById('upload-form');
-        const customFileLabel = document.querySelector('.custom-file-label');
-
-        imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                // Update the label
-                customFileLabel.innerText = file.name;
-
-                // Show preview
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewContainer.innerHTML = `<img src="${event.target.result}" id="preview-image" alt="Image Preview">`;
-                }
-                reader.readAsDataURL(file);
-                resultDiv.innerHTML = ''; // Clear previous results
-            } else {
-                customFileLabel.innerText = 'Choose file...';
-                previewContainer.innerHTML = '';
-            }
-        });
-
-        uploadForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const file = imageInput.files[0];
-
-            if (!file) {
-                resultDiv.innerHTML = `<div class="alert alert-danger">Please select a file.</div>`;
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('image', file);
-
-            spinner.style.display = 'block';
-            resultDiv.innerHTML = '';
-
-            try {
-                const response = await fetch('/intensity', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <h5>Results:</h5>
-                            <p><strong>Filename:</strong> ${data.filename}</p>
-                            <p><strong>Average Intensity:</strong> ${data.average_intensity}</p>
-                            <p><strong>Image Size:</strong> ${data.image_size[0]} x ${data.image_size[1]}</p>
-                            <p><strong>Pixel Count:</strong> ${data.pixel_count}</p>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
-            } finally {
-                spinner.style.display = 'none';
-            }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>

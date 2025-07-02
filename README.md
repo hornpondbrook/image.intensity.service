@@ -8,10 +8,15 @@ The intensity is computed by converting the image to grayscale and calculating t
 
 ## 2. Features
 
--   **Interactive Web Interface**: A simple, clean UI for uploading images directly from the browser.
+-   **Interactive Web Interface**: A modern, responsive UI for uploading images directly from the browser, featuring:
+    -   **Streamlined Layout**: Input controls (file input, Analyze, Clear buttons) in a single row, with image preview and analysis results displayed side-by-side below.
+    -   **Intuitive File Selection**: "Choose image file" prompt directly on the file input.
+    -   **Clear Actions**: Dedicated "Analyze" and "Clear" buttons for easy interaction.
+    -   **Enhanced Error Display**: Prominent, dismissible alerts for user feedback.
 -   **RESTful API**: A straightforward API for integrating the service into other applications.
 -   **Multi-Format Support**: Calculates intensity for both PNG and JPEG images.
 -   **Client-Side Image Preview**: See a thumbnail of your selected image before you upload it.
+-   **Client-Side File Type Validation**: Pre-checks image type (PNG/JPEG) before upload for immediate feedback.
 -   **File Size Limit**: Protects the server by rejecting files larger than 5 MB.
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
@@ -74,9 +79,11 @@ Once the service is running, you can interact with it in two ways:
 ### Web Interface
 
 Navigate to `http://localhost:5000` in your web browser. The interface allows you to:
--   Choose a PNG file from your local machine.
+-   Choose a PNG or JPEG file from your local machine using the "Choose image file" input.
 -   See a preview of the selected image.
--   Upload the image and view the calculated intensity results.
+-   Click "Analyze" to upload the image and view the calculated intensity results.
+-   Click "Clear" to reset the form and results.
+-   Receive immediate feedback for invalid file types or other client-side issues.
 
 ### API Endpoints
 
