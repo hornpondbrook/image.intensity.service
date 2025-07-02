@@ -8,15 +8,13 @@ import numpy as np
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from app import create_app
+from app import create_app, get_config_by_name
 
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
     app = create_app()
-    app.config.update({
-        "TESTING": True,
-    })
+    app.config.from_object(get_config_by_name('testing'))
     yield app
 
 @pytest.fixture
@@ -103,8 +101,8 @@ def test_404_endpoint(client):
 
 def test_file_size_limit(client):
     """Test that uploading a file larger than the limit fails."""
-    # Create a buffer larger than the 5MB limit
-    large_buffer = io.BytesIO(os.urandom(6 * 1024 * 1024))
+    # TestingConfig sets the limit to 500 KB
+    large_buffer = io.BytesIO(os.urandom(501 * 1024))
     
     response = client.post(
         '/intensity',
@@ -119,9 +117,10 @@ def test_file_size_limit(client):
 
 def test_file_just_under_size_limit(client):
     """Test that uploading a file just under the size limit succeeds."""
-    # Create a large PNG image (approx 4.7MB), under the 5MB limit
-    # A 2200x2200 grayscale image is 2200*2200 = 4,840,000 bytes
-    img_buffer = create_test_png(width=2200, height=2200, intensity=100)
+    # TestingConfig sets the limit to 500 KB
+    # Create a PNG just under the limit (e.g., 499 KB)
+    # A 700x700 grayscale image is 490,000 bytes
+    img_buffer = create_test_png(width=700, height=700, intensity=100)
     
     response = client.post(
         '/intensity',

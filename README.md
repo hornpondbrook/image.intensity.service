@@ -138,7 +138,23 @@ with open(file_path, 'rb') as f:
 print(response.json())
 ```
 
-## 5. Development
+## 5. Configuration
+
+The application can be configured using environment variables. This allows you to customize its behavior without modifying the code.
+
+-   **`FLASK_ENV`**: Sets the application environment. Can be `development`, `production`, or `testing`. Defaults to `development`.
+-   **`MAX_CONTENT_LENGTH`**: The maximum file size for uploads, in bytes. Defaults to `5242880` (5 MB).
+-   **`ALLOWED_IMAGE_FORMATS`**: A comma-separated list of allowed image formats. Defaults to `PNG,JPEG`.
+-   **`SECRET_KEY`**: A secret key for session management and other security features. It is highly recommended to set a strong, unique secret in production.
+
+To set an environment variable, you can use:
+
+```bash
+export FLASK_ENV=production
+export MAX_CONTENT_LENGTH=10485760  # 10 MB
+```
+
+## 6. Development
 
 This section contains information for developers contributing to the project.
 

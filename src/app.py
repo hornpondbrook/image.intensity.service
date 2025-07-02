@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, g
+from flask import Flask, request, jsonify, render_template, g, current_app
 from PIL import Image
 import numpy as np
 import io
@@ -7,6 +7,7 @@ import logging
 import time
 import json
 from werkzeug.exceptions import HTTPException
+from config import get_config_by_name
 
 # --- Structured Logging Setup ---
 
@@ -42,10 +43,9 @@ def create_app():
     app = Flask(__name__, template_folder='../templates')
 
     # --- Configuration ---
-    # Set debug mode from environment variable
-    app.config['DEBUG'] = os.environ.get('FLASK_ENV') == 'development'
-    # Set a maximum content length for uploads (e.g., 5MB)
-    app.config['MAX_CONTENT_LENGTH'] = 5 * 1000 * 1000
+    # Load configuration from environment variable (e.g., 'development', 'production')
+    config_name = os.environ.get('FLASK_ENV', 'development')
+    app.config.from_object(get_config_by_name(config_name))
 
     # --- Logging ---
     setup_logging(app)
@@ -138,8 +138,9 @@ def register_routes_and_handlers(app):
         """Calculate the average intensity of an image."""
         try:
             image = Image.open(io.BytesIO(image_data))
-            if image.format not in ['PNG', 'JPEG']:
-                raise ValueError(f"Image must be in PNG or JPEG format. Received: {image.format}")
+            allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
+            if image.format not in allowed_formats:
+                raise ValueError(f"Image must be in one of the following formats: {', '.join(allowed_formats)}. Received: {image.format}")
             
             width, height = image.size
             
@@ -162,8 +163,9 @@ def register_routes_and_handlers(app):
     @app.errorhandler(413)
     def payload_too_large(e):
         """Handle 413 Payload Too Large error."""
+        max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
         app.logger.warning(f"File upload failed: Payload too large. Content-Length: {request.content_length}")
-        return jsonify({"error": "File is too large. The maximum allowed size is 5 MB."}), 413
+        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB."}), 413
 
     @app.errorhandler(404)
     def not_found(e):
