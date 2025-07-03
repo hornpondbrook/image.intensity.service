@@ -2,11 +2,12 @@ import io
 import numpy as np
 from PIL import Image
 import logging
+from typing import List, Dict, Any
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
 
-def calculate_average_intensity(image_data, allowed_formats):
+def calculate_average_intensity(image_data: bytes, allowed_formats: List[str]) -> Dict[str, Any]:
     """Calculate the average intensity of an image.
 
     Args:

@@ -1,4 +1,5 @@
 import os
+from typing import Type, Dict
 
 class Config:
     """Base configuration."""
@@ -31,12 +32,12 @@ class TestingConfig(Config):
 
 
 # Dictionary to map environment names to configuration classes
-config_by_name = dict(
+config_by_name: Dict[str, Type[Config]] = dict(
     development=DevelopmentConfig,
     production=ProductionConfig,
     testing=TestingConfig
 )
 
-def get_config_by_name(config_name):
+def get_config_by_name(config_name: str) -> Type[Config]:
     """Returns the configuration class for the given environment name."""
     return config_by_name.get(config_name, DevelopmentConfig)

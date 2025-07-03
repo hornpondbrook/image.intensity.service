@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, g, current_app, has_request_context
+from flask import Flask, request, jsonify, render_template, g, current_app, has_request_context, Response as FlaskResponse
 from PIL import Image
 import numpy as np
 import io
@@ -8,6 +8,8 @@ import time
 import json
 import uuid
 from werkzeug.exceptions import HTTPException
+from werkzeug.wrappers import Response
+from typing import Any, Dict, Tuple
 from config import get_config_by_name
 from utils.image_processing import calculate_average_intensity
 
@@ -15,7 +17,7 @@ from utils.image_processing import calculate_average_intensity
 
 class JsonFormatter(logging.Formatter):
     """Formats log records as JSON."""
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         log_record = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
@@ -28,7 +30,7 @@ class JsonFormatter(logging.Formatter):
             log_record.update(record.extra_info)
         return json.dumps(log_record)
 
-def setup_logging(app):
+def setup_logging(app: Flask) -> None:
     """Configures structured logging for the Flask app."""
     log_level = logging.DEBUG if app.config.get('DEBUG') else logging.INFO
     
@@ -42,7 +44,7 @@ def setup_logging(app):
     werkzeug_logger.handlers = [handler]
     werkzeug_logger.setLevel(logging.WARNING)
 
-def create_app():
+def create_app() -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
 
@@ -69,7 +71,7 @@ def create_app():
         )
 
     @app.after_request
-    def after_request_logging(response):
+    def after_request_logging(response: Response) -> Response:
         duration = time.time() - g.start_time
         if hasattr(g, 'request_id'):
             response.headers['X-Request-ID'] = g.request_id
@@ -100,7 +102,7 @@ def create_app():
 
     return app
 
-def register_routes_and_handlers(app):
+def register_routes_and_handlers(app: Flask) -> None:
     """Register all routes and error handlers for the app."""
     
     @app.route('/')
@@ -109,7 +111,7 @@ def register_routes_and_handlers(app):
         return render_template('index.html')
 
     @app.route('/intensity', methods=['POST'])
-    def get_image_intensity():
+    def get_image_intensity() -> Tuple[FlaskResponse, int]:
         """API endpoint to calculate average intensity of a PNG or JPEG image."""
         try:
             if 'image' not in request.files:
@@ -151,7 +153,7 @@ def register_routes_and_handlers(app):
             
 
     @app.errorhandler(413)
-    def payload_too_large(e):
+    def payload_too_large(e: HTTPException) -> Tuple[FlaskResponse, int]:
         """Handle 413 Payload Too Large error."""
         max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
         # Note: request.content_length may not be available if the error happens very early
@@ -159,7 +161,7 @@ def register_routes_and_handlers(app):
         return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", "request_id": g.request_id if hasattr(g, 'request_id') else None}), 413
 
     @app.errorhandler(404)
-    def not_found(e):
+    def not_found(e: HTTPException) -> Tuple[FlaskResponse, int]:
         """Handle 404 errors"""
         app.logger.warning(f"404 Not Found: {request.path}")
         return jsonify({
@@ -172,7 +174,7 @@ def register_routes_and_handlers(app):
         }), 404
 
     @app.errorhandler(HTTPException)
-    def handle_http_exception(e):
+    def handle_http_exception(e: HTTPException) -> Response:
         """Handle all HTTP exceptions, returning a JSON error message."""
         # Get the response object from the exception
         response = e.get_response()
