@@ -9,6 +9,7 @@ import json
 import uuid
 from werkzeug.exceptions import HTTPException
 from config import get_config_by_name
+from utils.image_processing import calculate_average_intensity
 
 # --- Structured Logging Setup ---
 
@@ -116,7 +117,8 @@ def register_routes_and_handlers(app):
                 app.logger.warning(f"Validation failed: Empty file uploaded. Filename: {file.filename}")
                 return jsonify({"error": "Empty file uploaded", "request_id": g.request_id}), 400
             
-            result = calculate_average_intensity(image_data)
+            allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
+            result = calculate_average_intensity(image_data, allowed_formats)
             result['filename'] = file.filename
             result['request_id'] = g.request_id
             
@@ -135,33 +137,6 @@ def register_routes_and_handlers(app):
             return jsonify({"error": str(e), "request_id": g.request_id}), 400
 
             
-
-    def calculate_average_intensity(image_data):
-        """Calculate the average intensity of an image."""
-        try:
-            image = Image.open(io.BytesIO(image_data))
-            allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
-            if image.format not in allowed_formats:
-                raise ValueError(f"Image must be in one of the following formats: {', '.join(allowed_formats)}. Received: {image.format}")
-            
-            width, height = image.size
-            
-            grayscale_image = image.convert('L') if image.mode != 'L' else image
-            
-            img_array = np.array(grayscale_image)
-            average_intensity = float(np.mean(img_array))
-            
-            return {
-                'average_intensity': round(average_intensity, 2),
-                'image_size': [width, height],
-                'original_mode': image.mode,
-                'pixel_count': width * height
-            }
-        
-        except Exception as e:
-            app.logger.error(f"Pillow image processing failed: {str(e)}", exc_info=True)
-            raise ValueError(f"Error processing image: {str(e)}")
-
 
     @app.errorhandler(413)
     def payload_too_large(e):
