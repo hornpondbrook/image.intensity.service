@@ -58,9 +58,11 @@ def test_intensity_endpoint_success_png(client):
     response = client.post('/intensity', data={'image': (img_buffer, 'test.png')})
     
     assert response.status_code == 200
+    assert 'X-Request-ID' in response.headers
     data = response.get_json()
     assert 'average_intensity' in data
     assert data['average_intensity'] == 150.0
+    assert 'request_id' in data
 
 def test_intensity_endpoint_success_jpeg(client):
     """Test successful JPEG image upload and intensity calculation."""
@@ -69,35 +71,45 @@ def test_intensity_endpoint_success_jpeg(client):
     response = client.post('/intensity', data={'image': (img_buffer, 'test.jpg')})
     
     assert response.status_code == 200
+    assert 'X-Request-ID' in response.headers
     data = response.get_json()
     assert 'average_intensity' in data
     # JPEG compression can cause slight variations in intensity
     assert abs(data['average_intensity'] - 180.0) < 2.0
+    assert 'request_id' in data
 
 def test_intensity_endpoint_no_file(client):
     """Test endpoint with no file uploaded."""
     response = client.post('/intensity')
     assert response.status_code == 400
-    assert 'error' in response.get_json()
+    data = response.get_json()
+    assert 'error' in data
+    assert 'request_id' in data
 
 def test_intensity_endpoint_empty_file(client):
     """Test endpoint with empty file."""
     response = client.post('/intensity', data={'image': (io.BytesIO(b''), 'empty.png')})
     assert response.status_code == 400
-    assert 'error' in response.get_json()
+    data = response.get_json()
+    assert 'error' in data
+    assert 'request_id' in data
 
 def test_intensity_endpoint_unsupported_format(client):
     """Test endpoint with an unsupported image format (GIF)."""
     fake_gif = io.BytesIO(b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
     response = client.post('/intensity', data={'image': (fake_gif, 'test.gif')})
     assert response.status_code == 400
-    assert 'error' in response.get_json()
+    data = response.get_json()
+    assert 'error' in data
+    assert 'request_id' in data
 
 def test_404_endpoint(client):
     """Test 404 error handling."""
     response = client.get('/nonexistent')
     assert response.status_code == 404
-    assert 'error' in response.get_json()
+    data = response.get_json()
+    assert 'error' in data
+    assert 'request_id' in data
 
 def test_file_size_limit(client):
     """Test that uploading a file larger than the limit fails."""
@@ -114,6 +126,7 @@ def test_file_size_limit(client):
     data = response.get_json()
     assert 'error' in data
     assert 'too large' in data['error']
+    assert 'request_id' in data
 
 def test_file_just_under_size_limit(client):
     """Test that uploading a file just under the size limit succeeds."""
@@ -129,9 +142,11 @@ def test_file_just_under_size_limit(client):
     )
     
     assert response.status_code == 200
+    assert 'X-Request-ID' in response.headers
     data = response.get_json()
     assert 'average_intensity' in data
     assert data['average_intensity'] == 100.0
+    assert 'request_id' in data
 
 if __name__ == '__main__':
     pytest.main([__file__])

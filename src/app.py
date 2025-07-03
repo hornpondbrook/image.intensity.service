@@ -6,6 +6,7 @@ import os
 import logging
 import time
 import json
+import uuid
 from werkzeug.exceptions import HTTPException
 from config import get_config_by_name
 
@@ -20,6 +21,8 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "name": record.name,
         }
+        if hasattr(g, 'request_id'):
+            log_record['request_id'] = g.request_id
         if hasattr(record, 'extra_info'):
             log_record.update(record.extra_info)
         return json.dumps(log_record)
@@ -54,6 +57,7 @@ def create_app():
     @app.before_request
     def before_request_logging():
         g.start_time = time.time()
+        g.request_id = str(uuid.uuid4())
         app.logger.info(
             "Incoming request",
             extra={'extra_info': {
@@ -66,6 +70,8 @@ def create_app():
     @app.after_request
     def after_request_logging(response):
         duration = time.time() - g.start_time
+        if hasattr(g, 'request_id'):
+            response.headers['X-Request-ID'] = g.request_id
         app.logger.info(
             "Request completed",
             extra={'extra_info': {
@@ -96,22 +102,23 @@ def register_routes_and_handlers(app):
         try:
             if 'image' not in request.files:
                 app.logger.warning("Validation failed: No image file provided.")
-                return jsonify({"error": "No image file provided. Please upload a file with key 'image'"}), 400
+                return jsonify({"error": "No image file provided. Please upload a file with key 'image'", "request_id": g.request_id}), 400
             
             file = request.files['image']
             
             if file.filename == '':
                 app.logger.warning("Validation failed: No file selected.")
-                return jsonify({"error": "No file selected"}), 400
+                return jsonify({"error": "No file selected", "request_id": g.request_id}), 400
             
             image_data = file.read()
             
             if not image_data:
                 app.logger.warning(f"Validation failed: Empty file uploaded. Filename: {file.filename}")
-                return jsonify({"error": "Empty file uploaded"}), 400
+                return jsonify({"error": "Empty file uploaded", "request_id": g.request_id}), 400
             
             result = calculate_average_intensity(image_data)
             result['filename'] = file.filename
+            result['request_id'] = g.request_id
             
             app.logger.info(
                 "Successfully calculated image intensity.",
@@ -125,14 +132,14 @@ def register_routes_and_handlers(app):
             
         except ValueError as e:
             app.logger.warning(f"Client error during intensity calculation: {str(e)}")
-            return jsonify({"error": str(e)}), 400
+            return jsonify({"error": str(e), "request_id": g.request_id}), 400
 
         except HTTPException as e:
             raise e
             
         except Exception as e:
             app.logger.error(f"Internal server error: {str(e)}", exc_info=True)
-            return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+            return jsonify({"error": f"Internal server error: {str(e)}", "request_id": g.request_id}), 500
 
     def calculate_average_intensity(image_data):
         """Calculate the average intensity of an image."""
@@ -165,7 +172,7 @@ def register_routes_and_handlers(app):
         """Handle 413 Payload Too Large error."""
         max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
         app.logger.warning(f"File upload failed: Payload too large. Content-Length: {request.content_length}")
-        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB."}), 413
+        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", "request_id": g.request_id}), 413
 
     @app.errorhandler(404)
     def not_found(e):
@@ -173,6 +180,7 @@ def register_routes_and_handlers(app):
         app.logger.warning(f"404 Not Found: {request.path}")
         return jsonify({
             "error": "Endpoint not found",
+            "request_id": g.request_id,
             "available_endpoints": {
                 "GET /": "Serves the web interface.",
                 "POST /intensity": "Calculate image intensity"

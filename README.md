@@ -20,6 +20,7 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **File Size Limit**: Protects the server by rejecting files larger than 5 MB.
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
+-   **Request Tracing**: Each request is assigned a unique ID (`X-Request-ID` header and `request_id` in response body) for improved logging and end-to-end traceability.
 
 ## 3. Getting Started
 
@@ -99,19 +100,23 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
 -   **Request Body**: Must contain a file field named `image`.
 
 -   **Success Response (`200 OK`)**:
-    ```json
-    {
-      "average_intensity": 127.45,
-      "filename": "sample.png",
-      "image_size": [800, 600],
-      "original_mode": "RGB",
-      "pixel_count": 480000
-    }
-    ```
+    -   **Body**:
+        ```json
+        {
+          "average_intensity": 127.45,
+          "filename": "sample.png",
+          "image_size": [800, 600],
+          "original_mode": "RGB",
+          "pixel_count": 480000,
+          "request_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        }
+        ```
+    -   **Headers**:
+        -   `X-Request-ID`: A unique identifier for the request (e.g., `a1b2c3d4-e5f6-7890-1234-567890abcdef`).
 
 -   **Error Responses**:
-    -   `400 Bad Request`: For invalid input, such as wrong file format (e.g., GIF, TIFF).
-    -   `413 Payload Too Large`: If the uploaded file exceeds the 5 MB size limit.
+    -   `400 Bad Request`: For invalid input, such as wrong file format (e.g., GIF, TIFF). The response body includes a `request_id`.
+    -   `413 Payload Too Large`: If the uploaded file exceeds the 5 MB size limit. The response body includes a `request_id`.
 
 ### API Usage Examples
 
@@ -197,10 +202,10 @@ pytest --cov=src --cov-report=html
 
 The application uses structured JSON logging, which is ideal for production environments.
 - **Format**: JSON lines sent to standard output.
-- **Details**: Each log entry includes a timestamp, level, message, and request context (method, path, IP, duration).
+- **Details**: Each log entry includes a timestamp, level, message, `request_id`, and request context (method, path, IP, duration).
 - **Example Log Entry**:
   ```json
-  {"timestamp": "2023-10-27T10:30:00,123", "level": "INFO", "message": "Request completed", "name": "src.app", "extra_info": {"method": "POST", "path": "/intensity", "status_code": 200, "duration_ms": 54.21, "response_mimetype": "application/json"}}
+  {"timestamp": "2023-10-27T10:30:00,123", "level": "INFO", "message": "Request completed", "name": "src.app", "request_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef", "extra_info": {"method": "POST", "path": "/intensity", "status_code": 200, "duration_ms": 54.21}}
   ```
 
 ### Core Logic Notes
