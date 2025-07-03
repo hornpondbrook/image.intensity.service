@@ -19,8 +19,9 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **Client-Side File Type Validation**: Pre-checks image type (PNG/JPEG) before upload for immediate feedback.
 -   **File Size Limit**: Protects the server by rejecting files larger than 5 MB.
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
--   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 -   **Request Tracing**: Each request is assigned a unique ID (`X-Request-ID` header and `request_id` in response body) for improved logging and end-to-end traceability.
+-   **Performance Metrics**: The API response includes the request processing time (`duration_ms`) and the raw image size in bytes (`image_size_bytes`).
+-   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
 ## 3. Getting Started
 
@@ -82,7 +83,7 @@ Once the service is running, you can interact with it in two ways:
 Navigate to `http://localhost:5000` in your web browser. The interface allows you to:
 -   Choose a PNG or JPEG file from your local machine using the "Choose image file" input.
 -   See a preview of the selected image.
--   Click "Analyze" to upload the image and view the calculated intensity results.
+-   Click "Analyze" to upload the image and view the calculated intensity results, which include file size and processing time.
 -   Click "Clear" to reset the form and results.
 -   Receive immediate feedback for invalid file types or other client-side issues.
 
@@ -108,6 +109,8 @@ Navigate to `http://localhost:5000` in your web browser. The interface allows yo
           "image_size": [800, 600],
           "original_mode": "RGB",
           "pixel_count": 480000,
+          "duration_ms": 25.5,
+          "image_size_bytes": 123456,
           "request_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         }
         ```

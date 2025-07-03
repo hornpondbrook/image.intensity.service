@@ -22,7 +22,7 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "name": record.name,
         }
-        if hasattr(g, 'request_id'):
+        if has_request_context() and hasattr(g, 'request_id'):
             log_record['request_id'] = g.request_id
         if hasattr(record, 'extra_info'):
             log_record.update(record.extra_info)
@@ -73,6 +73,17 @@ def create_app():
         duration = time.time() - g.start_time
         if hasattr(g, 'request_id'):
             response.headers['X-Request-ID'] = g.request_id
+
+        # Add duration to JSON responses
+        if response.is_json:
+            try:
+                data = response.get_json()
+                if isinstance(data, dict):
+                    data['duration_ms'] = round(duration * 1000, 2)
+                    response.set_data(json.dumps(data))
+            except Exception as e:
+                current_app.logger.error(f"Failed to add duration to JSON response: {e}")
+
         app.logger.info(
             "Request completed",
             extra={'extra_info': {
@@ -121,6 +132,7 @@ def register_routes_and_handlers(app):
             result = calculate_average_intensity(image_data, allowed_formats)
             result['filename'] = file.filename
             result['request_id'] = g.request_id
+            result['image_size_bytes'] = len(image_data)
             
             app.logger.info(
                 "Successfully calculated image intensity.",
