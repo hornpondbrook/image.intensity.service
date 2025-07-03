@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, g, current_app
+from flask import Flask, request, jsonify, render_template, g, current_app, has_request_context
 from PIL import Image
 import numpy as np
 import io
@@ -134,12 +134,7 @@ def register_routes_and_handlers(app):
             app.logger.warning(f"Client error during intensity calculation: {str(e)}")
             return jsonify({"error": str(e), "request_id": g.request_id}), 400
 
-        except HTTPException as e:
-            raise e
             
-        except Exception as e:
-            app.logger.error(f"Internal server error: {str(e)}", exc_info=True)
-            return jsonify({"error": f"Internal server error: {str(e)}", "request_id": g.request_id}), 500
 
     def calculate_average_intensity(image_data):
         """Calculate the average intensity of an image."""
@@ -167,12 +162,14 @@ def register_routes_and_handlers(app):
             app.logger.error(f"Pillow image processing failed: {str(e)}", exc_info=True)
             raise ValueError(f"Error processing image: {str(e)}")
 
+
     @app.errorhandler(413)
     def payload_too_large(e):
         """Handle 413 Payload Too Large error."""
         max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
-        app.logger.warning(f"File upload failed: Payload too large. Content-Length: {request.content_length}")
-        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", "request_id": g.request_id}), 413
+        # Note: request.content_length may not be available if the error happens very early
+        app.logger.warning(f"File upload failed: Payload too large.")
+        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", "request_id": g.request_id if hasattr(g, 'request_id') else None}), 413
 
     @app.errorhandler(404)
     def not_found(e):
@@ -186,6 +183,43 @@ def register_routes_and_handlers(app):
                 "POST /intensity": "Calculate image intensity"
             }
         }), 404
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e):
+        """Handle all HTTP exceptions, returning a JSON error message."""
+        # Get the response object from the exception
+        response = e.get_response()
+
+        req_id = None
+        if has_request_context() and hasattr(g, 'request_id'):
+            req_id = g.request_id
+        
+        # Create a JSON response
+        response.data = json.dumps({
+            "code": e.code,
+            "name": e.name,
+            "description": e.description,
+            "request_id": req_id,
+        })
+        response.content_type = "application/json"
+
+        # Log the exception with appropriate level
+        log_level = "warning" if 400 <= e.code < 500 else "error"
+        log_method = getattr(current_app.logger, log_level)
+
+        extra_info = {"description": e.description}
+        if has_request_context():
+            extra_info.update({
+                "path": request.path,
+                "method": request.method,
+            })
+        
+        log_method(
+            f"HTTP Exception: {e.code} {e.name}",
+            extra={'extra_info': extra_info}
+        )
+        
+        return response
 
 if __name__ == '__main__':
     app = create_app()

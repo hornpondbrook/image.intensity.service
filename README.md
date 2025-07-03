@@ -212,7 +212,7 @@ The application uses structured JSON logging, which is ideal for production envi
 
 -   **Intensity Calculation**: The core logic resides in the `calculate_average_intensity` function. It first validates that the image is a PNG or JPEG, converts it to grayscale (`L` mode), transforms it into a NumPy array, and computes the mean.
 -   **Input Validation**: The service validates that the file is a PNG or JPEG and is not empty. It also enforces a **5 MB file size limit** via the `MAX_CONTENT_LENGTH` setting.
--   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes (e.g., `400` for client errors, `413` for oversized files, `500` for server errors).
+-   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes. All error responses include a `request_id` for traceability. Specific handlers are in place for `400 Bad Request` (client-side validation and image processing errors), `413 Payload Too Large` (file size limits), and `404 Not Found` (unknown endpoints). A centralized `HTTPException` handler catches other HTTP errors, providing consistent JSON responses. Unhandled server-side issues will result in `500 Internal Server Error`.
 
 ## 6. Future Enhancements
 

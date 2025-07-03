@@ -146,6 +146,17 @@ def test_file_just_under_size_limit(client):
     data = response.get_json()
     assert 'average_intensity' in data
     assert data['average_intensity'] == 100.0
+def test_generic_http_exception_handler(client):
+    """Test the generic HTTPException handler for a 405 Method Not Allowed error."""
+    response = client.get('/intensity')  # Send GET to a POST-only endpoint
+    
+    assert response.status_code == 405
+    data = response.get_json()
+    assert data['code'] == 405
+    assert data['name'] == "Method Not Allowed"
+    assert 'description' in data
+    assert 'request_id' in data
+
     assert 'request_id' in data
 
 if __name__ == '__main__':
