@@ -8,17 +8,28 @@ from typing import List, Dict, Any
 logger = logging.getLogger(__name__)
 
 def calculate_average_intensity(image_data: bytes, allowed_formats: List[str]) -> Dict[str, Any]:
-    """Calculate the average intensity of an image.
-
+    """
+    Calculates the average pixel intensity of an image.
+    
+    This function first validates the image format against a list of allowed
+    formats. It then converts the image to grayscale ('L' mode) to ensure a
+    consistent intensity calculation across different image types (e.g., RGB,
+    RGBA). The average intensity is computed from the pixel values of the
+    grayscale image.
+    
     Args:
-        image_data (bytes): The raw image data.
-        allowed_formats (list): A list of allowed image formats (e.g., ['PNG', 'JPEG']).
-
+        image_data: The raw binary data of the image.
+        allowed_formats: A list of uppercase strings representing the
+            allowed image formats (e.g., ['PNG', 'JPEG']).
+    
     Returns:
-        dict: A dictionary containing average intensity, image size, original mode, and pixel count.
-
+        A dictionary containing the calculated average intensity, image
+        dimensions, the original color mode of the image, and the total
+        pixel count.
+    
     Raises:
-        ValueError: If the image format is not allowed or if there's an error processing the image.
+        ValueError: If the image format is not in the allowed list or if
+            the image data is corrupted or cannot be processed.
     """
     try:
         image = Image.open(io.BytesIO(image_data))

@@ -16,7 +16,12 @@ from utils.image_processing import calculate_average_intensity
 # --- Structured Logging Setup ---
 
 class JsonFormatter(logging.Formatter):
-    """Formats log records as JSON."""
+    """
+    Formats log records as structured JSON.
+    
+    This formatter includes standard log information along with any extra context
+    provided, such as a request ID when processing web requests.
+    """
     def format(self, record: logging.LogRecord) -> str:
         log_record = {
             "timestamp": self.formatTime(record, self.datefmt),
@@ -31,7 +36,16 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 def setup_logging(app: Flask) -> None:
-    """Configures structured logging for the Flask app."""
+    """
+    Configures structured, JSON-based logging for the Flask application.
+    
+    Sets up a handler that formats log messages as JSON, making them easier to
+    parse and analyze by log management systems. It also sets the log level
+    based on the application's debug status.
+    
+    Args:
+        app: The Flask application instance.
+    """
     log_level = logging.DEBUG if app.config.get('DEBUG') else logging.INFO
     
     handler = logging.StreamHandler()
@@ -45,7 +59,16 @@ def setup_logging(app: Flask) -> None:
     werkzeug_logger.setLevel(logging.WARNING)
 
 def create_app() -> Flask:
-    """Create and configure the Flask application."""
+    """
+    Creates and configures the Flask application.
+    
+    This factory function initializes the Flask app, loads configuration from
+    environment variables, sets up logging, and registers request hooks,
+    routes, and error handlers.
+    
+    Returns:
+        The configured Flask application instance.
+    """
     app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
 
     # --- Configuration ---
@@ -103,16 +126,40 @@ def create_app() -> Flask:
     return app
 
 def register_routes_and_handlers(app: Flask) -> None:
-    """Register all routes and error handlers for the app."""
+    """
+    Registers all routes and error handlers for the application.
+    
+    This function encapsulates the registration of URL routes and error handlers
+    to keep the `create_app` factory clean and organized.
+    
+    Args:
+        app: The Flask application instance.
+    """
     
     @app.route('/')
     def index():
-        """Serve the index.html page"""
+        """
+        Serves the main HTML page for the web interface.
+        
+        Returns:
+            The rendered `index.html` template.
+        """
         return render_template('index.html')
 
     @app.route('/intensity', methods=['POST'])
     def get_image_intensity() -> Tuple[FlaskResponse, int]:
-        """API endpoint to calculate average intensity of a PNG or JPEG image."""
+        """
+        API endpoint to calculate the average intensity of an uploaded image.
+        
+        Accepts a POST request with a multipart/form-data image file. The image
+        must be in a format specified in the application's configuration (e.g.,
+        PNG, JPEG).
+        
+        Returns:
+            A JSON response containing the analysis results, including the
+            average intensity, image dimensions, and other metadata.
+            On error, returns a JSON object with an error description.
+        """
         try:
             if 'image' not in request.files:
                 app.logger.warning("Validation failed: No image file provided.")
@@ -154,7 +201,18 @@ def register_routes_and_handlers(app: Flask) -> None:
 
     @app.errorhandler(413)
     def payload_too_large(e: HTTPException) -> Tuple[FlaskResponse, int]:
-        """Handle 413 Payload Too Large error."""
+        """
+        Handles the 413 Payload Too Large error.
+        
+        This error is triggered when the uploaded file exceeds the maximum
+        configured size (`MAX_CONTENT_LENGTH`).
+        
+        Args:
+            e: The HTTPException instance.
+        
+        Returns:
+            A JSON response with an error message and a 413 status code.
+        """
         max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
         # Note: request.content_length may not be available if the error happens very early
         app.logger.warning(f"File upload failed: Payload too large.")
@@ -162,7 +220,18 @@ def register_routes_and_handlers(app: Flask) -> None:
 
     @app.errorhandler(404)
     def not_found(e: HTTPException) -> Tuple[FlaskResponse, int]:
-        """Handle 404 errors"""
+        """
+        Handles 404 Not Found errors.
+        
+        Returns a JSON response indicating that the requested endpoint does not
+        exist and provides a list of available endpoints.
+        
+        Args:
+            e: The HTTPException instance.
+        
+        Returns:
+            A JSON response with an error message and a 404 status code.
+        """
         app.logger.warning(f"404 Not Found: {request.path}")
         return jsonify({
             "error": "Endpoint not found",
@@ -175,7 +244,18 @@ def register_routes_and_handlers(app: Flask) -> None:
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(e: HTTPException) -> Response:
-        """Handle all HTTP exceptions, returning a JSON error message."""
+        """
+        Generic handler for all HTTP exceptions.
+        
+        This function catches any `HTTPException` not explicitly handled and
+        formats it into a standardized JSON error response.
+        
+        Args:
+            e: The HTTPException instance.
+        
+        Returns:
+            A Flask Response object with a JSON payload describing the error.
+        """
         # Get the response object from the exception
         response = e.get_response()
 
