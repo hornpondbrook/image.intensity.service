@@ -10,6 +10,7 @@ import uuid
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 from typing import Any, Dict, Tuple
+from flask_cors import CORS
 from config import get_config_by_name
 from utils.image_processing import calculate_average_intensity
 
@@ -70,6 +71,9 @@ def create_app() -> Flask:
         The configured Flask application instance.
     """
     app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
+
+    # --- CORS ---
+    CORS(app)
 
     # --- Configuration ---
     # Load configuration from environment variable (e.g., 'development', 'production')

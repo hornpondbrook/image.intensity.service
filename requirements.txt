@@ -10,3 +10,4 @@ numpy==1.26.4
 
 # WSGI Server for Production
 gunicorn==21.2.0
+Flask-Cors

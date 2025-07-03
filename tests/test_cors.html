@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORS Test</title>
+</head>
+
+<body>
+  <h1>CORS Test</h1>
+  <p>Open the browser's developer console to see the result of the fetch request.</p>
+  <script>
+    fetch('http://127.0.0.1:5000/intensity', {
+      method: 'POST',
+      body: new FormData()
+    })
+      .then(response => response.json())
+      .then(data => console.log('Success:', data))
+      .catch(error => console.error('Error:', error));
+  </script>
+</body>
+
+</html>

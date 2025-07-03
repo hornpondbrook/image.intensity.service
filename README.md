@@ -21,9 +21,11 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **Structured JSON Logging**: All events are logged in a machine-readable JSON format, perfect for production monitoring.
 -   **Request Tracing**: Each request is assigned a unique ID (`X-Request-ID` header and `request_id` in response body) for improved logging and end-to-end traceability.
 -   **Performance Metrics**: The API response includes the request processing time (`duration_ms`) and the raw image size in bytes (`image_size_bytes`).
+-   **CORS Enabled**: The API is configured to accept cross-origin requests, allowing it to be called from any web frontend.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
 ## 3. Getting Started
+
 
 This section will guide you through running the service.
 
@@ -202,8 +204,16 @@ pytest -v
 # Run tests with code coverage report
 pytest --cov=src --cov-report=html
 ```
+### Testing CORS
+
+To test the CORS functionality:
+
+1.  Run the application locally.
+2.  Open the `tests/test_cors.html` file in your web browser.
+3.  Open the browser's developer console. You should see a "Success" message with the JSON response from the server, indicating that the CORS request was successful.
 
 ### Logging
+
 
 The application uses structured JSON logging, which is ideal for production environments.
 - **Format**: JSON lines sent to standard output.

@@ -158,6 +158,6 @@ def test_generic_http_exception_handler(client):
     assert 'request_id' in data
 
     assert 'request_id' in data
-
+    
 if __name__ == '__main__':
     pytest.main([__file__])
