@@ -14,6 +14,15 @@ from flask_cors import CORS
 from config import get_config_by_name
 from utils.image_processing import calculate_average_intensity
 
+
+def make_error_response(message: str, status_code: int, **kwargs: Any) -> Tuple[FlaskResponse, int]:
+    """Creates a standardized JSON error response."""
+    payload: Dict[str, Any] = {"error": message}
+    if has_request_context() and hasattr(g, 'request_id'):
+        payload['request_id'] = g.request_id
+    payload.update(kwargs)
+    return jsonify(payload), status_code
+
 # --- Structured Logging Setup ---
 
 class JsonFormatter(logging.Formatter):
@@ -167,19 +176,19 @@ def register_routes_and_handlers(app: Flask) -> None:
         try:
             if 'image' not in request.files:
                 app.logger.warning("Validation failed: No image file provided.")
-                return jsonify({"error": "No image file provided. Please upload a file with key 'image'", "request_id": g.request_id}), 400
+                return make_error_response("No image file provided. Please upload a file with key 'image'", 400)
             
             file = request.files['image']
             
             if file.filename == '':
                 app.logger.warning("Validation failed: No file selected.")
-                return jsonify({"error": "No file selected", "request_id": g.request_id}), 400
+                return make_error_response("No file selected", 400)
             
             image_data = file.read()
             
             if not image_data:
                 app.logger.warning(f"Validation failed: Empty file uploaded. Filename: {file.filename}")
-                return jsonify({"error": "Empty file uploaded", "request_id": g.request_id}), 400
+                return make_error_response("Empty file uploaded", 400)
             
             allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
             result = calculate_average_intensity(image_data, allowed_formats)
@@ -199,7 +208,7 @@ def register_routes_and_handlers(app: Flask) -> None:
             
         except ValueError as e:
             app.logger.warning(f"Client error during intensity calculation: {str(e)}")
-            return jsonify({"error": str(e), "request_id": g.request_id}), 400
+            return make_error_response(str(e), 400)
 
             
 
@@ -220,7 +229,7 @@ def register_routes_and_handlers(app: Flask) -> None:
         max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
         # Note: request.content_length may not be available if the error happens very early
         app.logger.warning(f"File upload failed: Payload too large.")
-        return jsonify({"error": f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", "request_id": g.request_id if hasattr(g, 'request_id') else None}), 413
+        return make_error_response(f"File is too large. The maximum allowed size is {max_size_mb:.1f} MB.", 413)
 
     @app.errorhandler(404)
     def not_found(e: HTTPException) -> Tuple[FlaskResponse, int]:
@@ -237,14 +246,14 @@ def register_routes_and_handlers(app: Flask) -> None:
             A JSON response with an error message and a 404 status code.
         """
         app.logger.warning(f"404 Not Found: {request.path}")
-        return jsonify({
-            "error": "Endpoint not found",
-            "request_id": g.request_id,
-            "available_endpoints": {
+        return make_error_response(
+            "Endpoint not found",
+            404,
+            available_endpoints={
                 "GET /": "Serves the web interface.",
                 "POST /intensity": "Calculate image intensity"
             }
-        }), 404
+        )
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(e: HTTPException) -> Response:
