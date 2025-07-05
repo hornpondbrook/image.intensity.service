@@ -235,3 +235,7 @@ The application uses structured JSON logging, which is ideal for production envi
 -   Implement asynchronous processing for large images using a task queue like Celery.
 -   Add authentication and rate limiting to the API.
 -   Expand test suite to cover more edge cases and the web UI.
+-   **Decouple Components**: Refactor the application to use dependency injection. This will decouple components like the image processing logic from the route handlers, making the application more modular, easier to test, and more maintainable.
+-   **Improve Error Handling**: Implement a more robust error handling strategy by defining custom exception classes for specific business logic errors (e.g., `InvalidImageFormatError`, `EmptyFileError`). This will allow for more granular error handling and clearer API responses.
+-   **Enhance Security**: Strengthen file upload security by validating file types based on their content (e.g., "magic bytes") rather than relying solely on file extensions. This will help prevent malicious file uploads.
+-   **Optimize Performance**: Improve memory efficiency by implementing streaming for file uploads. Instead of reading the entire file into memory, process it in chunks to reduce the memory footprint and make the service more resilient to large files.
