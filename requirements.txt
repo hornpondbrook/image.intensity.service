@@ -11,3 +11,7 @@ numpy==1.26.4
 # WSGI Server for Production
 gunicorn==21.2.0
 Flask-Cors
+
+# gRPC
+grpcio==1.64.1
+protobuf==5.27.1

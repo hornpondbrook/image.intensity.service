@@ -6,6 +6,10 @@ pytest==8.2.2
 pytest-cov==4.1.0
 
 # Code Quality and Linting
+# Code Quality and Linting
 flake8==7.1.0
 black==24.4.2
 mypy==1.10.0
+
+# gRPC code generation
+grpcio-tools==1.64.1

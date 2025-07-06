@@ -11,8 +11,10 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 from typing import Any, Dict, Tuple
 from flask_cors import CORS
-from config import get_config_by_name
-from utils.image_processing import calculate_average_intensity
+from .config import get_config_by_name
+import grpc
+from generated import processing_pb2, processing_pb2_grpc
+from shared.image_processing import calculate_average_intensity
 
 
 def make_error_response(message: str, status_code: int, **kwargs: Any) -> Tuple[FlaskResponse, int]:
@@ -79,7 +81,7 @@ def create_app() -> Flask:
     Returns:
         The configured Flask application instance.
     """
-    app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
+    app = Flask(__name__, template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'templates'), static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static'), static_url_path='/static')
 
     # --- CORS ---
     CORS(app)
@@ -191,20 +193,38 @@ def register_routes_and_handlers(app: Flask) -> None:
                 return make_error_response("Empty file uploaded", 400)
             
             allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
-            result = calculate_average_intensity(image_data, allowed_formats)
-            result['filename'] = file.filename
-            result['request_id'] = g.request_id
-            result['image_size_bytes'] = len(image_data)
-            
-            app.logger.info(
-                "Successfully calculated image intensity.",
-                extra={'extra_info': {
-                    "filename": file.filename,
-                    "intensity": result['average_intensity'],
-                    "image_size_bytes": len(image_data)
-                }}
-            )
-            return jsonify(result), 200
+
+            try:
+                with grpc.insecure_channel(current_app.config['GRPC_SERVER_ADDRESS']) as channel:
+                    stub = processing_pb2_grpc.ImageProcessorStub(channel)
+                    response = stub.AnalyzeImage(processing_pb2.ImageRequest(image_data=image_data, allowed_formats=allowed_formats))
+
+                result = {
+                    'average_intensity': response.average_intensity,
+                    'image_size': [response.width, response.height],
+                    'original_mode': response.original_mode,
+                    'pixel_count': response.pixel_count,
+                    'filename': file.filename,
+                    'request_id': g.request_id,
+                    'image_size_bytes': len(image_data),
+                }
+
+                app.logger.info(
+                    "Successfully calculated image intensity.",
+                    extra={'extra_info': {
+                        "filename": file.filename,
+                        "intensity": result['average_intensity'],
+                        "image_size_bytes": len(image_data)
+                    }}
+                )
+                return jsonify(result), 200
+
+            except grpc.RpcError as e:
+                app.logger.error(f"gRPC error during intensity calculation: {e.details()}")
+                if e.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    return make_error_response(f"Error processing image: {e.details()}", 400)
+                else:
+                    return make_error_response(f"Error processing image: {e.details()}", 500)
             
         except ValueError as e:
             app.logger.warning(f"Client error during intensity calculation: {str(e)}")

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  api_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - GRPC_SERVER_ADDRESS=image_processor:50051
+    depends_on:
+      - image_processor
+
+  image_processor:
+    build:
+      context: .
+      dockerfile: image_processor/Dockerfile
+    ports:
+      - "50051:50051"

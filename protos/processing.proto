@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package processing;
+
+// The service definition.
+service ImageProcessor {
+  // Calculates the average intensity of an image.
+  rpc AnalyzeImage (ImageRequest) returns (AnalysisResponse) {}
+}
+
+// The request message containing the image data.
+message ImageRequest {
+  bytes image_data = 1; // The raw image file bytes.
+  repeated string allowed_formats = 2;
+}
+
+// The response message containing the analysis results.
+message AnalysisResponse {
+  float average_intensity = 1;
+  int32 width = 2;
+  int32 height = 3;
+  string original_mode = 4;
+  int64 pixel_count = 5;
+}

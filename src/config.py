@@ -15,6 +15,7 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 5 * 1024 * 1024))
     # Define allowed image formats from an environment variable
     ALLOWED_IMAGE_FORMATS = os.environ.get('ALLOWED_IMAGE_FORMATS', 'PNG,JPEG').split(',')
+    GRPC_SERVER_ADDRESS = os.environ.get('GRPC_SERVER_ADDRESS', 'localhost:50051')
 
 
 class DevelopmentConfig(Config):

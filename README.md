@@ -24,59 +24,144 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **CORS Enabled**: The API is configured to accept cross-origin requests, allowing it to be called from any web frontend.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
-## 3. Getting Started
+## 3. Architecture                                                                                                               
+                                                                                                                              
+The application is designed using a microservices architecture to separate the web-facing API from the core computationa         
+logic. This design enhances scalability, performance, and maintainability.                                                       
+                                                                                                                              
+The system consists of two main services:                                                                                        
+                                                                                                                              
+1.  **API Gateway**: A public-facing Flask web application that handles all incoming HTTP requests. It is responsible fo         
+serving the web interface, validating user input, and managing the RESTful API. It acts as a gRPC client, forwarding             
+processing requests to the internal Image Processor service.                                                                     
+                                                                                                                              
+2.  **Image Processor**: An internal gRPC service dedicated to performing the computationally intensive image analysis.          
+receives image data via high-performance gRPC calls, calculates the intensity, and returns the structured result.                
+                                                                                                                              
+This separation allows the two components to be developed, deployed, and scaled independently.                                   
+                                                                                                                              
+### System Diagram                                                                                                               
+                                                                                                                              
+```                                                                                                                              
+                                  +-------------------------+                                                                    
+                                  |                         |                                                                    
+(Browser, curl, etc.) <----HTTP---->  API Gateway (Flask)    |                                                                   
+                                  |   (Public-Facing)       |                                                                    
+                                  |                         |                                                                    
+                                  +-----------+-------------+                                                                    
+                                              |                                                                                  
+                                              | gRPC (Protobuf)                                                                  
+                                              |                                                                                  
+                                  +-----------v-------------+                                                                    
+                                  |                         |                                                                    
+                                  |  Image Processor        |                                                                    
+                                  |  (gRPC Service)         |                                                                    
+                                  |   (Internal)            |                                                                    
+                                  +-------------------------+                                                                    
+```                                                                                                                              
+                                                                                                                              
+### Communication Flow                                                                                                           
+                                                                                                                              
+1.  A user uploads an image via the web interface or by calling the `POST /intensity` REST endpoint.                             
+2.  The **API Gateway** receives the HTTP request, validates it, and extracts the image data.                                    
+3.  The Gateway makes a gRPC call to the **Image Processor** service, sending the image data using Protocol Buffers for          
+efficient serialization.                                                                                                         
+4.  The **Image Processor** calculates the average intensity and returns the result to the Gateway.                              
+5.  The **API Gateway** formats the result into a JSON response and sends it back to the client.                                 
+  
+## 4. Getting Started
 
 
 This section will guide you through running the service.
 
 ### Prerequisites
 
--   Docker
--   Python 3.8+ and `pip` (for local development)
+-   Docker and Docker Compose
+-   Python 3.10+ and `pip` (for local development)
 
-### Running with Docker (Recommended)
+### Running All Services with Docker Compose (Recommended)
 
-Using Docker is the simplest way to get the service running.
+This is the easiest way to get both the API Gateway and the Image Processor services running.
 
-1.  **Build the image:**
+1.  **Build and run the services:**
     ```bash
-    docker build -t image-intensity-service .
+    docker-compose up --build -d
     ```
+    This command builds the Docker images for both `api_gateway` and `image_processor` services (if they haven't been built or if their Dockerfiles have changed) and starts them in detached mode.
 
-2.  **Run the container:**
-    ```bash
-    docker run -p 5000:5000 image-intensity-service
-    ```
-
-The service will be available at `http://localhost:5000`.
+2.  **Access the API Gateway:**
+    The API Gateway (Flask app) will be available at `http://localhost:5000`.
 
 ### Running Locally for Development
 
-1.  **Clone the repository:**
+For active development on the API Gateway, it's often more convenient to run it directly on your host machine while keeping the Image Processor service containerized.
+
+1.  **Start the Image Processor Service (Dockerized):**
+    First, ensure the gRPC image processor service is running in Docker:
     ```bash
-    git clone <repository-url>
-    cd image-intensity-service
+    docker-compose up -d image_processor
     ```
 
-2.  **Set up a virtual environment:**
+2.  **Set up a virtual environment (if not already done):**
     ```bash
     python -m venv .venv
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
     ```
 
-3.  **Install dependencies:**
+3.  **Install development dependencies:**
     ```bash
     pip install -r requirements-dev.txt
     ```
 
-4.  **Run the application:**
+4.  **Run the API Gateway application locally:**
+    Ensure your current working directory is the project root (`image.intensity.service/`).
     ```bash
-    FLASK_ENV=development python src/app.py
+    PYTHONPATH=$(pwd)/src FLASK_ENV=development python -m src.app
+    ```
+    The API Gateway will be available at `http://localhost:5000`.
+
+### Stopping Services
+
+-   To stop only the Dockerized `image_processor` service:
+    ```bash
+    docker-compose down image_processor
+    ```
+-   To stop all services started by `docker-compose up` and remove their containers:
+    ```bash
+    docker-compose down
+    ```
+-   To stop the locally running API Gateway, press `Ctrl+C` in its terminal.
+
+### Cleaning Up Docker Resources
+
+To remove all Docker resources (containers, networks, volumes, and images) associated with this project, you can use the following commands. This is useful for a clean slate or to free up disk space.
+
+1.  **Stop and remove all containers, networks, and volumes:**
+    ```bash
+    docker-compose down --volumes --rmi all
+    ```
+    This command stops the running containers, removes the containers, networks, and any anonymous volumes attached to containers. The `--rmi all` flag also removes images used by any service in `docker-compose.yml`.
+
+2.  **Remove dangling images (optional, but recommended for cleanup):**
+    Sometimes, Docker might leave behind unused or 'dangling' images. You can remove them with:
+    ```bash
+    docker image prune
+    ```
+    Confirm the prompt to proceed.
+
+3.  **Remove all unused Docker networks (optional):**
+    ```bash
+    docker network prune
     ```
 
-The service will be available at `http://localhost:5000`.
+4.  **Remove all unused Docker volumes (optional):**
+    ```bash
+    docker volume prune
+    ```
 
-## 4. Usage
+
+
+## 5. Usage
 
 Once the service is running, you can interact with it in two ways:
 
@@ -155,7 +240,7 @@ with open(file_path, 'rb') as f:
 print(response.json())
 ```
 
-## 5. Configuration
+## 6. Configuration
 
 The application can be configured using environment variables. This allows you to customize its behavior without modifying the code.
 
@@ -171,7 +256,7 @@ export FLASK_ENV=production
 export MAX_CONTENT_LENGTH=10485760  # 10 MB
 ```
 
-## 6. Development
+## 7. Development
 
 This section contains information for developers contributing to the project.
 
@@ -181,21 +266,31 @@ This section contains information for developers contributing to the project.
 image-intensity-service/
 ├── src/
 │   ├── app.py            # Flask application, endpoints, and core logic
-│   └── utils/
+│   ├── config.py         # Configuration settings
+│   ├── generated/        # Auto-generated gRPC files
+│   └── shared/
 │       └── image_processing.py # Utility module for image processing functions
+├── image_processor/
+│   ├── Dockerfile        # Dockerfile for the image processor service
+│   └── server.py         # gRPC server for image processing
+├── protos/
+│   └── processing.proto  # Protocol Buffers definition for the gRPC service
 ├── templates/
 │   └── index.html        # Web interface HTML
 ├── tests/
 │   └── test_api.py       # Pytest tests for the API
 ├── requirements.txt      # Production dependencies
 ├── requirements-dev.txt  # Development and testing dependencies
-├── Dockerfile            # Container configuration
+├── Dockerfile            # Container configuration for the API gateway
+├── docker-compose.yml    # Docker Compose file for running all services
 └── README.md             # This file
 ```
 
 ### Running Tests
 
-Ensure you have installed the development dependencies (`requirements-dev.txt`).
+To run the tests, ensure the `image_processor` gRPC service is running (either via `docker-compose up -d image_processor` or as part of `docker-compose up --build -d`).
+
+Then, ensure you have installed the development dependencies (`requirements-dev.txt`) in your local environment.
 
 ```bash
 # Run all tests with verbose output
@@ -230,7 +325,7 @@ The application uses structured JSON logging, which is ideal for production envi
 -   **Error Handling**: The API returns descriptive JSON error messages with appropriate HTTP status codes. All error responses include a `request_id` for traceability. Specific handlers are in place for `400 Bad Request` (client-side validation and image processing errors), `413 Payload Too Large` (file size limits), and `404 Not Found` (unknown endpoints). A centralized `HTTPException` handler catches other HTTP errors, providing consistent JSON responses. Unhandled server-side issues will result in `500 Internal Server Error`.
 -   **Code Quality**: The codebase includes type annotations and detailed docstrings for all functions, which improves readability and allows for static analysis.
 
-## 6. Future Enhancements
+## 8. Future Enhancements
 
 -   Implement asynchronous processing for large images using a task queue like Celery.
 -   Add authentication and rate limiting to the API.
