@@ -22,8 +22,8 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **Request Tracing**: Each request is assigned a unique ID (`X-Request-ID` header and `request_id` in response body) for improved logging and end-to-end traceability.
 -   **Performance Metrics**: The API response includes the request processing time (`duration_ms`) and the raw image size in bytes (`image_size_bytes`).
 -   **CORS Enabled**: The API is configured to accept cross-origin requests, allowing it to be called from any web frontend.
--   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 -   **Result Caching**: Implemented using Redis to cache image intensity calculation results. Subsequent requests for the same image will be served from the cache, significantly reducing processing time and load on the Image Processor. Responses include an `X-Cache` header (`hit` or `miss`) for observability.
+-   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
 
 ## 3. Architecture                                                                                                               
                                                                                                                               
@@ -63,9 +63,11 @@ This separation allows the two components to be developed, deployed, and scaled 
 ### Communication Flow                                                                                                           
                                                                                                                               
 1.  A user uploads an image via the web interface or by calling the `POST /intensity` REST endpoint.                             
-2.  The **API Gateway** receives the HTTP request, validates it, and extracts the image data.                                    
-3.  The Gateway makes a gRPC call to the **Image Processor** service, sending the image data using Protocol Buffers for          
-efficient serialization.                                                                                                         
+2.  The **API Gateway** receives the HTTP request, validates it, extracts the image data and generate cache key of
+    SHA-256 hash based on the image data.                                    
+3.  The Gateway first check the cache with the key to see if the image has already been processed, if yes, the result will
+    be retrieved from the cache and sent to client, for cache miss, it makes a gRPC call to the **Image Processor** service, 
+    sending the image data using Protocol Buffers for efficient serialization.                         
 4.  The **Image Processor** calculates the average intensity and returns the result to the Gateway.                              
 5.  The **API Gateway** formats the result into a JSON response and sends it back to the client.                                 
   
@@ -248,12 +250,18 @@ The application can be configured using environment variables. This allows you t
 -   **`MAX_CONTENT_LENGTH`**: The maximum file size for uploads, in bytes. Defaults to `5242880` (5 MB).
 -   **`ALLOWED_IMAGE_FORMATS`**: A comma-separated list of allowed image formats. Defaults to `PNG,JPEG`.
 -   **`SECRET_KEY`**: A secret key for session management and other security features. It is highly recommended to set a strong, unique secret in production.
+-   **`REDIS_HOST`**: Hostname or IP address of the Redis server. Defaults to `redis` (for Docker Compose).
+-   **`REDIS_PORT`**: Port of the Redis server. Defaults to `6379`.
+-   **`CACHE_TTL_SECONDS`**: Time-To-Live (TTL) for cached image intensity results, in seconds. Defaults to `86400` (24 hours).
 
 To set an environment variable, you can use:
 
 ```bash
 export FLASK_ENV=production
 export MAX_CONTENT_LENGTH=10485760  # 10 MB
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export CACHE_TTL_SECONDS=3600 # 1 hour
 ```
 
 ## 7. Development
@@ -265,11 +273,16 @@ This section contains information for developers contributing to the project.
 ```
 image-intensity-service/
 ├── src/
+│   ├── __init__.py       # Marks src as a Python package
 │   ├── app.py            # Flask application, endpoints, and core logic
 │   ├── config.py         # Configuration settings
 │   ├── generated/        # Auto-generated gRPC files
+│   │   └── __init__.py   # Marks generated as a Python package
 │   └── shared/
+│       ├── __init__.py   # Marks shared as a Python package
 │       └── image_processing.py # Utility module for image processing functions
+│   └── utils/
+│       └── __init__.py   # Marks utils as a Python package
 ├── image_processor/
 │   ├── Dockerfile        # Dockerfile for the image processor service
 │   └── server.py         # gRPC server for image processing
@@ -304,12 +317,29 @@ To run the tests, ensure the `image_processor` gRPC service is running (either v
 Then, ensure you have installed the development dependencies (`requirements-dev.txt`) in your local environment.
 
 ```bash
+# Start "image processor" service in another terminal
+docker-compose up -d image_processor
+
 # Run all tests with verbose output
 pytest -v
 
 # Run tests with code coverage report
 pytest --cov=src --cov-report=html
 ```
+
+#### Testing Caching with `fakeredis`
+
+To ensure the caching logic works correctly without requiring a running Redis instance during unit tests, `fakeredis` is used. This library provides a drop-in replacement for the `redis-py` client that simulates Redis behavior in memory.
+
+In `tests/test_api.py`, the `app` fixture is patched to use `fakeredis.FakeRedis` instead of the real `redis.Redis` client. This allows tests to interact with a simulated Redis cache.
+
+The `test_caching_logic` function specifically verifies the cache hit and miss scenarios:
+
+1.  **Cache Miss**: The first request for a given image (identified by its SHA-256 hash) will result in a cache miss. The `X-Cache` header in the response is asserted to be `miss`.
+2.  **Cache Hit**: A subsequent request for the exact same image will result in a cache hit. The `X-Cache` header in the response is asserted to be `hit`, and the response data is verified to be identical to the first request (excluding dynamic fields like `request_id` and `duration_ms`).
+
+This approach ensures that the caching mechanism correctly identifies and serves cached results, and that the fallback to the Image Processor occurs as expected on a cache miss.
+
 ### Testing CORS
 
 To test the CORS functionality:
