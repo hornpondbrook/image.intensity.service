@@ -7,6 +7,8 @@ import logging
 import time
 import json
 import uuid
+import hashlib
+import redis
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 from typing import Any, Dict, Tuple
@@ -90,6 +92,13 @@ def create_app() -> Flask:
     # Load configuration from environment variable (e.g., 'development', 'production')
     config_name = os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(get_config_by_name(config_name))
+
+    # --- Redis Cache ---
+    app.redis_client = redis.Redis(
+        host=app.config['REDIS_HOST'],
+        port=app.config['REDIS_PORT'],
+        decode_responses=True
+    )
 
     # --- Logging ---
     setup_logging(app)
@@ -191,6 +200,22 @@ def register_routes_and_handlers(app: Flask) -> None:
             if not image_data:
                 app.logger.warning(f"Validation failed: Empty file uploaded. Filename: {file.filename}")
                 return make_error_response("Empty file uploaded", 400)
+
+            # --- Caching Logic ---
+            image_hash = hashlib.sha256(image_data).hexdigest()
+            cache_key = f"image_intensity:{image_hash}"
+
+            try:
+                cached_result = current_app.redis_client.get(cache_key)
+                if cached_result:
+                    current_app.logger.info(f"Cache hit for image hash: {image_hash}")
+                    response = jsonify(json.loads(cached_result))
+                    response.headers['X-Cache'] = 'hit'
+                    return response, 200
+            except redis.exceptions.RedisError as e:
+                current_app.logger.error(f"Redis error on cache GET: {e}")
+
+            current_app.logger.info(f"Cache miss for image hash: {image_hash}")
             
             allowed_formats = current_app.config['ALLOWED_IMAGE_FORMATS']
 
@@ -209,6 +234,16 @@ def register_routes_and_handlers(app: Flask) -> None:
                     'image_size_bytes': len(image_data),
                 }
 
+                # --- Cache the result ---
+                try:
+                    current_app.redis_client.setex(
+                        cache_key,
+                        current_app.config['CACHE_TTL_SECONDS'],
+                        json.dumps(result)
+                    )
+                except redis.exceptions.RedisError as e:
+                    current_app.logger.error(f"Redis error on cache SET: {e}")
+
                 app.logger.info(
                     "Successfully calculated image intensity.",
                     extra={'extra_info': {
@@ -217,7 +252,9 @@ def register_routes_and_handlers(app: Flask) -> None:
                         "image_size_bytes": len(image_data)
                     }}
                 )
-                return jsonify(result), 200
+                response = jsonify(result)
+                response.headers['X-Cache'] = 'miss'
+                return response, 200
 
             except grpc.RpcError as e:
                 app.logger.error(f"gRPC error during intensity calculation: {e.details()}")

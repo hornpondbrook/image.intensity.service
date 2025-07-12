@@ -17,6 +17,11 @@ class Config:
     ALLOWED_IMAGE_FORMATS = os.environ.get('ALLOWED_IMAGE_FORMATS', 'PNG,JPEG').split(',')
     GRPC_SERVER_ADDRESS = os.environ.get('GRPC_SERVER_ADDRESS', 'localhost:50051')
 
+    # Redis Cache Configuration
+    REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
+    REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+    CACHE_TTL_SECONDS = int(os.environ.get('CACHE_TTL_SECONDS', 24 * 3600))  # 24 hours
+
 
 class DevelopmentConfig(Config):
     """

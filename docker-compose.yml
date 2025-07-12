@@ -10,8 +10,11 @@ services:
     environment:
       - FLASK_ENV=production
       - GRPC_SERVER_ADDRESS=image_processor:50051
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - image_processor
+      - redis
 
   image_processor:
     build:
@@ -19,3 +22,8 @@ services:
       dockerfile: image_processor/Dockerfile
     ports:
       - "50051:50051"
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6380:6379"
