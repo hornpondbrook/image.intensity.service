@@ -4,18 +4,22 @@ import os
 import io
 from PIL import Image
 import numpy as np
+from unittest.mock import patch
+import fakeredis
 
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import create_app, get_config_by_name
+from src.app import create_app, get_config_by_name
 
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
-    app = create_app()
-    app.config.from_object(get_config_by_name('testing'))
-    yield app
+    # Patch redis.Redis with fakeredis.FakeRedis before creating the app
+    with patch('redis.Redis', fakeredis.FakeRedis):
+        app = create_app()
+        app.config.from_object(get_config_by_name('testing'))
+        yield app
 
 @pytest.fixture
 def client(app):
@@ -77,6 +81,29 @@ def test_intensity_endpoint_success_jpeg(client):
     # JPEG compression can cause slight variations in intensity
     assert abs(data['average_intensity'] - 180.0) < 2.0
     assert 'request_id' in data
+
+def test_caching_logic(client):
+    """Test that caching works as expected."""
+    # 1. First request: Cache Miss
+    response_miss = client.post('/intensity', data={'image': (create_test_png(50, 50, 100), 'test_cache.png')})
+    assert response_miss.status_code == 200
+    assert response_miss.headers['X-Cache'] == 'miss'
+    data_miss = response_miss.get_json()
+    assert data_miss['average_intensity'] == 100.0
+
+    # 2. Second request: Cache Hit
+    response_hit = client.post('/intensity', data={'image': (create_test_png(50, 50, 100), 'test_cache.png')})
+    assert response_hit.status_code == 200
+    assert response_hit.headers['X-Cache'] == 'hit'
+    data_hit = response_hit.get_json()
+    assert data_hit['average_intensity'] == 100.0
+
+    # 3. Ensure the data is the same (except for request_id and duration)
+    data_miss.pop('request_id', None)
+    data_miss.pop('duration_ms', None)
+    data_hit.pop('request_id', None)
+    data_hit.pop('duration_ms', None)
+    assert data_miss == data_hit
 
 def test_intensity_endpoint_no_file(client):
     """Test endpoint with no file uploaded."""

@@ -23,6 +23,7 @@ The intensity is computed by converting the image to grayscale and calculating t
 -   **Performance Metrics**: The API response includes the request processing time (`duration_ms`) and the raw image size in bytes (`image_size_bytes`).
 -   **CORS Enabled**: The API is configured to accept cross-origin requests, allowing it to be called from any web frontend.
 -   **Containerized**: Comes with a `Dockerfile` for easy and consistent deployment.
+-   **Result Caching**: Implemented using Redis to cache image intensity calculation results. Subsequent requests for the same image will be served from the cache, significantly reducing processing time and load on the Image Processor. Responses include an `X-Cache` header (`hit` or `miss`) for observability.
 
 ## 3. Architecture                                                                                                               
                                                                                                                               
@@ -44,20 +45,19 @@ This separation allows the two components to be developed, deployed, and scaled 
                                                                                                                               
 ```                                                                                                                              
                                   +-------------------------+                                                                    
-                                  |                         |                                                                    
-(Browser, curl, etc.) <----HTTP---->  API Gateway (Flask)    |                                                                   
-                                  |   (Public-Facing)       |                                                                    
+                                  |   API Gateway (Flask)   |                                                                    
+(Browser, curl, etc.) <----HTTP---->   (Public-Facing)       |                                                                    
                                   |                         |                                                                    
                                   +-----------+-------------+                                                                    
-                                              |                                                                                  
-                                              | gRPC (Protobuf)                                                                  
-                                              |                                                                                  
-                                  +-----------v-------------+                                                                    
-                                  |                         |                                                                    
-                                  |  Image Processor        |                                                                    
-                                  |  (gRPC Service)         |                                                                    
-                                  |   (Internal)            |                                                                    
-                                  +-------------------------+                                                                    
+                                      ^       |                                                                                  
+                                      |       | gRPC                                                                             
+                                Redis |       |                                                                                  
+                               (Cache)|       v                                                                                  
+                                      |   +-------------------------+                                                              
+                                  +---v-------+   |  Image Processor        |                                                      
+                                  |  Redis    |   |  (gRPC Service)         |                                                      
+                                  +-----------+   |   (Internal)            |                                                      
+                                                  +-------------------------+                                                      
 ```                                                                                                                              
                                                                                                                               
 ### Communication Flow                                                                                                           
@@ -285,6 +285,17 @@ image-intensity-service/
 ├── docker-compose.yml    # Docker Compose file for running all services
 └── README.md             # This file
 ```
+
+### Caching Implementation Details
+
+To optimize performance for repeated image analysis requests, a caching layer has been integrated using Redis. The caching mechanism works as follows:
+
+1.  **Cache Key Generation**: When an image is uploaded, a SHA-256 hash of its binary content is computed. This hash serves as a unique identifier and the cache key.
+2.  **Cache Lookup**: Before processing an image, the API Gateway checks if a result for the computed hash exists in the Redis cache.
+3.  **Cache Hit**: If a cached result is found, it is immediately returned to the client. The `X-Cache` response header is set to `hit`.
+4.  **Cache Miss**: If no cached result is found, the request is forwarded to the Image Processor service for computation. Once the result is obtained, it is stored in Redis with a configurable Time-To-Live (TTL) for future requests. The `X-Cache` response header is set to `miss`.
+
+This approach significantly reduces latency and computational load for frequently requested images.
 
 ### Running Tests
 

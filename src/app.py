@@ -15,8 +15,8 @@ from typing import Any, Dict, Tuple
 from flask_cors import CORS
 from .config import get_config_by_name
 import grpc
-from generated import processing_pb2, processing_pb2_grpc
-from shared.image_processing import calculate_average_intensity
+from .generated import processing_pb2, processing_pb2_grpc
+from .shared.image_processing import calculate_average_intensity
 
 
 def make_error_response(message: str, status_code: int, **kwargs: Any) -> Tuple[FlaskResponse, int]:
